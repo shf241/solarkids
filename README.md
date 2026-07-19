@@ -22,3 +22,28 @@ SolarKids 是一个面向儿童的天体运行教学 Web 软件。
 
 每位成员在自己的 `feature/*` 分支开发，完成阶段功能后合并到 `dev`，测试通过后再合并到 `main`。
 
+## 开发与验证
+
+安装开发依赖：
+
+```bash
+npm install
+```
+
+验证成员4的 Storage、多语言和小游戏纯逻辑模块：
+
+```bash
+npm run typecheck
+npm test
+npm run build
+```
+
+模块入口：
+
+- `src/storage/index.ts`：语言、皮肤、学习进度和游戏记录。
+- `src/i18n/index.ts`：中英文文案读取和切换。
+- `src/game/index.ts`：轨道拖动小游戏的纯逻辑。
+- `src/data/language.json`：界面与八大行星双语内容。
+
+具体接入方式见 `docs/成员4模块对接说明.md`。
+
