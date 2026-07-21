@@ -9,10 +9,10 @@ import {
   onDeviceChange,
   updatePanel,
   bindControls,
-} from './ui/index';
-import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader';
-import { showSkinPicker, injectSkinStyles } from './ui/skinPicker';
-import { initSolarSystemPreview } from './ui/solarSystemPreview';
+} from './ui/index.js';
+import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader.js';
+import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
+import { initSolarSystemPreview } from './ui/solarSystemPreview.js';
 
 // ---- 全局状态 ----
 
@@ -168,7 +168,7 @@ function updateSpeed(): void {
 
 function showHelpModal(): void {
   // 使用动态 import 避免循环依赖
-  import('./ui/index').then(({ showModal }) => {
+  import('./ui/index.js').then(({ showModal }) => {
     showModal(
       '❓ 操作帮助',
       `

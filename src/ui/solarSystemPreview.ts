@@ -1,4 +1,4 @@
-import type { PlanetInfo } from './index';
+import type { PlanetInfo } from './index.js';
 
 type PreviewCallbacks = {
   updatePanel: (info: PlanetInfo | null) => void;
