@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Zoom in</title>
+  <circle cx="21" cy="21" r="13" fill="none" stroke="#5bc0eb" stroke-width="4"/>
+  <path d="M31 31l9 9" stroke="#5bc0eb" stroke-width="5" stroke-linecap="round"/>
+  <path d="M21 14v14M14 21h14" stroke="#f7c948" stroke-width="4" stroke-linecap="round"/>
+</svg>
+

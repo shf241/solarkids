@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Language</title>
+  <circle cx="24" cy="24" r="18" fill="none" stroke="#5bc0eb" stroke-width="4"/>
+  <path d="M8 24h32M24 6c5 5 7.5 11 7.5 18S29 37 24 42M24 6c-5 5-7.5 11-7.5 18S19 37 24 42" fill="none" stroke="#f7c948" stroke-width="3" stroke-linecap="round"/>
+</svg>
+

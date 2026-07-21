@@ -64,8 +64,12 @@ function bindControlBar(): void {
   bindControls({
     'btn-play': el => {
       const btn = el as HTMLButtonElement;
-      const isPaused = btn.textContent === '▶️';
-      btn.textContent = isPaused ? '⏸️' : '▶️';
+      const isPaused = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', String(isPaused));
+      const icon = btn.querySelector<HTMLImageElement>('.control-icon');
+      if (icon) {
+        icon.src = isPaused ? 'assets/svg/icon-pause.svg' : 'assets/svg/icon-play.svg';
+      }
       showToast(isPaused ? '▶️ 已播放' : '⏸️ 已暂停');
       // TODO: 通知成员3的 Canvas 动画
       document.dispatchEvent(new CustomEvent('solarkids:togglePlay'));

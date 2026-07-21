@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Reset view</title>
+  <path d="M10 25.5A14 14 0 1 0 15 14" fill="none" stroke="#5bc0eb" stroke-width="4" stroke-linecap="round"/>
+  <path d="M10 13v12h12" fill="none" stroke="#f7c948" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="24" cy="25" r="5" fill="#f7c948"/>
+</svg>
+
