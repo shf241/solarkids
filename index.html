@@ -32,7 +32,9 @@
     <nav id="control-bar">
       <!-- 播放控制 -->
       <div class="control-group">
-        <button class="btn btn--icon" id="btn-play" title="播放/暂停">▶️</button>
+        <button class="btn btn--icon" id="btn-play" title="播放/暂停" aria-label="播放或暂停">
+          <img class="control-icon" src="assets/svg/icon-play.svg" alt="">
+        </button>
         <button class="btn btn--icon" id="btn-speed-down" title="减速">⏪</button>
         <input type="range" id="speed-slider" min="1" max="10" value="5" title="速度">
         <button class="btn btn--icon" id="btn-speed-up" title="加速">⏩</button>
@@ -40,9 +42,15 @@
 
       <!-- 视角控制 -->
       <div class="control-group">
-        <button class="btn btn--icon" id="btn-zoom-in" title="放大">🔍</button>
-        <button class="btn btn--icon" id="btn-zoom-out" title="缩小">🔎</button>
-        <button class="btn btn--icon" id="btn-reset-view" title="重置视角">🏠</button>
+        <button class="btn btn--icon" id="btn-zoom-in" title="放大" aria-label="放大">
+          <img class="control-icon" src="assets/svg/icon-zoom-in.svg" alt="">
+        </button>
+        <button class="btn btn--icon" id="btn-zoom-out" title="缩小" aria-label="缩小">
+          <img class="control-icon" src="assets/svg/icon-zoom-out.svg" alt="">
+        </button>
+        <button class="btn btn--icon" id="btn-reset-view" title="重置视角" aria-label="重置视角">
+          <img class="control-icon" src="assets/svg/icon-reset-view.svg" alt="">
+        </button>
       </div>
 
       <!-- 功能切换 -->
@@ -54,9 +62,15 @@
 
       <!-- 设置 -->
       <div class="control-group">
-        <button class="btn btn--icon" id="btn-skin" title="换肤">🎨</button>
-        <button class="btn btn--icon" id="btn-lang" title="语言切换">🌐</button>
-        <button class="btn btn--icon" id="btn-help" title="帮助">❓</button>
+        <button class="btn btn--icon" id="btn-skin" title="换肤" aria-label="打开天体换肤">
+          <img class="control-icon" src="assets/svg/icon-skin.svg" alt="">
+        </button>
+        <button class="btn btn--icon" id="btn-lang" title="语言切换" aria-label="切换语言">
+          <img class="control-icon" src="assets/svg/icon-language.svg" alt="">
+        </button>
+        <button class="btn btn--icon" id="btn-help" title="帮助" aria-label="打开帮助">
+          <img class="control-icon" src="assets/svg/icon-help.svg" alt="">
+        </button>
       </div>
     </nav>
 

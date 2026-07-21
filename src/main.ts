@@ -9,9 +9,10 @@ import {
   onDeviceChange,
   updatePanel,
   bindControls,
-} from './ui/index';
-import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader';
-import { showSkinPicker, injectSkinStyles } from './ui/skinPicker';
+} from './ui/index.js';
+import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader.js';
+import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
+import { initSolarSystemPreview } from './ui/solarSystemPreview.js';
 
 // ---- 全局状态 ----
 
@@ -64,8 +65,12 @@ function bindControlBar(): void {
   bindControls({
     'btn-play': el => {
       const btn = el as HTMLButtonElement;
-      const isPaused = btn.textContent === '▶️';
-      btn.textContent = isPaused ? '⏸️' : '▶️';
+      const isPaused = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', String(isPaused));
+      const icon = btn.querySelector<HTMLImageElement>('.control-icon');
+      if (icon) {
+        icon.src = isPaused ? 'assets/svg/icon-pause.svg' : 'assets/svg/icon-play.svg';
+      }
       showToast(isPaused ? '▶️ 已播放' : '⏸️ 已暂停');
       // TODO: 通知成员3的 Canvas 动画
       document.dispatchEvent(new CustomEvent('solarkids:togglePlay'));
@@ -163,7 +168,7 @@ function updateSpeed(): void {
 
 function showHelpModal(): void {
   // 使用动态 import 避免循环依赖
-  import('./ui/index').then(({ showModal }) => {
+  import('./ui/index.js').then(({ showModal }) => {
     showModal(
       '❓ 操作帮助',
       `
@@ -188,41 +193,7 @@ function initCanvas(): void {
   const container = document.getElementById('canvas-container');
   if (!canvas || !container) return;
 
-  const resize = () => {
-    canvas.width = container.clientWidth * window.devicePixelRatio;
-    canvas.height = container.clientHeight * window.devicePixelRatio;
-    canvas.style.width = `${container.clientWidth}px`;
-    canvas.style.height = `${container.clientHeight}px`;
-  };
-  resize();
-  window.addEventListener('resize', resize);
-
-  // 绘制占位启动画面
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#060b1f';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 星空背景
-    for (let i = 0; i < 100; i++) {
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height;
-      const r = Math.random() * 1.5;
-      ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.6 + 0.2})`;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // 启动文字
-    ctx.fillStyle = '#f7c948';
-    ctx.font = `${canvas.width > 768 ? 32 : 20}px "PingFang SC", "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('☀️ SolarKids 太阳系', canvas.width / 2, canvas.height / 2 - 10);
-    ctx.fillStyle = '#c4d0e8';
-    ctx.font = `${canvas.width > 768 ? 16 : 13}px "PingFang SC", "Microsoft YaHei", sans-serif`;
-    ctx.fillText('点击行星开始探索', canvas.width / 2, canvas.height / 2 + 30);
-  }
+  initSolarSystemPreview(canvas, container, { updatePanel, showToast });
 }
 
 // ---- 存储占位（成员4：数据存储负责人） ----

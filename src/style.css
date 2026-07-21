@@ -130,6 +130,12 @@ button {
   outline: none;
 }
 
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--color-sun-yellow);
+  outline-offset: 3px;
+}
+
 /* 禁止移动端长按菜单 */
 canvas, svg, button {
   -webkit-touch-callout: none;
@@ -244,6 +250,19 @@ canvas, svg, button {
   padding: 0;
   border-radius: var(--radius-full);
   font-size: 1.25rem;
+}
+
+.btn--active,
+.btn[aria-pressed="true"] {
+  background: rgba(247, 201, 72, 0.2);
+  box-shadow: var(--shadow-glow-yellow);
+  border: 1px solid rgba(247, 201, 72, 0.55);
+}
+
+.control-icon {
+  width: 26px;
+  height: 26px;
+  pointer-events: none;
 }
 
 /* -- 面板卡片 -- */
@@ -440,6 +459,17 @@ input[type="range"]::-webkit-slider-thumb {
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* --------------------------------------------
    八、响应式 —— iPad（768px - 1023px）
    -------------------------------------------- */
@@ -497,11 +527,19 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   #control-bar {
-    justify-content: space-around;
-    flex-wrap: wrap;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
     gap: 4px;
     padding: 4px 8px;
     min-height: 48px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .control-group {
+    flex: 0 0 auto;
+    padding: 0 2px;
   }
 
   /* 手机端按钮自适应 */
@@ -515,6 +553,11 @@ input[type="range"]::-webkit-slider-thumb {
   .btn--icon {
     width: 40px;
     height: 40px;
+  }
+
+  .control-icon {
+    width: 23px;
+    height: 23px;
   }
 
   /* 侧边栏信息简化 */

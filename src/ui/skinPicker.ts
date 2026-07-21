@@ -3,9 +3,9 @@
  * 提供卡通/写实两套皮肤切换的 UI
  */
 
-import { showModal } from './index';
-import type { SkinsData, SkinConfig } from './assetLoader';
-import { getSkinList, clearAssetCache } from './assetLoader';
+import { showModal } from './index.js';
+import type { SkinsData, SkinConfig } from './assetLoader.js';
+import { getSkinList, clearAssetCache } from './assetLoader.js';
 
 /** 弹出换肤选择面板 */
 export function showSkinPicker(
