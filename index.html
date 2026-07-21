@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolarKids — 天体运行少儿教学</title>
+  <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+
+  <!-- ============================================
+      主布局：Canvas | 侧面板 | 底部控制栏
+      ============================================ -->
+  <div id="app">
+
+    <!-- Canvas 画布区（成员3负责） -->
+    <div id="canvas-container">
+      <canvas id="main-canvas"></canvas>
+    </div>
+
+    <!-- 侧边信息面板（成员1+2+3共用） -->
+    <aside id="side-panel">
+      <h2 id="planet-name">🌍 选择一颗行星</h2>
+      <p id="planet-desc">点击画布中的天体，查看详细信息</p>
+      <hr class="divider">
+      <div class="planet-info__stats" id="planet-stats">
+        <!-- JS 动态填充 -->
+      </div>
+    </aside>
+
+    <!-- 底部控制栏 -->
+    <nav id="control-bar">
+      <!-- 播放控制 -->
+      <div class="control-group">
+        <button class="btn btn--icon" id="btn-play" title="播放/暂停">▶️</button>
+        <button class="btn btn--icon" id="btn-speed-down" title="减速">⏪</button>
+        <input type="range" id="speed-slider" min="1" max="10" value="5" title="速度">
+        <button class="btn btn--icon" id="btn-speed-up" title="加速">⏩</button>
+      </div>
+
+      <!-- 视角控制 -->
+      <div class="control-group">
+        <button class="btn btn--icon" id="btn-zoom-in" title="放大">🔍</button>
+        <button class="btn btn--icon" id="btn-zoom-out" title="缩小">🔎</button>
+        <button class="btn btn--icon" id="btn-reset-view" title="重置视角">🏠</button>
+      </div>
+
+      <!-- 功能切换 -->
+      <div class="control-group">
+        <button class="btn btn--ghost" id="btn-eclipse" title="日食/月食模拟">🌑 日食</button>
+        <button class="btn btn--ghost" id="btn-comet" title="哈雷彗星">☄️ 彗星</button>
+        <button class="btn btn--ghost" id="btn-magnetic" title="磁场演示">🧲 磁场</button>
+      </div>
+
+      <!-- 设置 -->
+      <div class="control-group">
+        <button class="btn btn--icon" id="btn-skin" title="换肤">🎨</button>
+        <button class="btn btn--icon" id="btn-lang" title="语言切换">🌐</button>
+        <button class="btn btn--icon" id="btn-help" title="帮助">❓</button>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- ============================================
+       弹窗容器（按需由 JS 填充）
+       ============================================ -->
+  <div id="modal-container"></div>
+
+  <!-- ============================================
+       脚本（模块化加载）
+       注：开发阶段用 TypeScript 编译后的 bundle
+       ============================================ -->
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

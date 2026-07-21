@@ -6,3 +6,7 @@ build/
 Thumbs.db
 *.log
 
+# TypeScript 编译产物（源码是 .ts，不提交 .js 和 .js.map）
+src/**/*.js
+src/**/*.js.map
+

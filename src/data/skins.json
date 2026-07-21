@@ -1,0 +1,49 @@
+{
+  "activeSkin": "cartoon",
+  "skins": {
+    "cartoon": {
+      "name": "🌈 卡通模式",
+      "type": "svg",
+      "assets": {
+        "sun":     "assets/svg/sun.svg",
+        "mercury": "assets/svg/mercury.svg",
+        "venus":   "assets/svg/venus.svg",
+        "earth":   "assets/svg/earth.svg",
+        "moon":    "assets/svg/moon.svg",
+        "mars":    "assets/svg/mars.svg",
+        "jupiter": "assets/svg/jupiter.svg",
+        "saturn":  "assets/svg/saturn.svg",
+        "uranus":  "assets/svg/uranus.svg",
+        "neptune": "assets/svg/neptune.svg"
+      }
+    },
+    "realistic": {
+      "name": "🔭 写实模式",
+      "type": "png",
+      "assets": {
+        "sun":     "assets/images/sun.png",
+        "mercury": "assets/images/mercury.png",
+        "venus":   "assets/images/venus.png",
+        "earth":   "assets/images/earth.png",
+        "moon":    "assets/images/moon.png",
+        "mars":    "assets/images/mars.png",
+        "jupiter": "assets/images/jupiter.png",
+        "saturn":  "assets/images/saturn.png",
+        "uranus":  "assets/images/uranus.png",
+        "neptune": "assets/images/neptune.png"
+      }
+    }
+  },
+  "planetColors": {
+    "sun":     "#f7c948",
+    "mercury": "#b0b0b0",
+    "venus":   "#e8cda0",
+    "earth":   "#4da6e8",
+    "moon":    "#cccccc",
+    "mars":    "#d45a3a",
+    "jupiter": "#d4b896",
+    "saturn":  "#e8d5a3",
+    "uranus":  "#7ec8e3",
+    "neptune": "#4b7ef7"
+  }
+}

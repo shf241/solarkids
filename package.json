@@ -1,0 +1,14 @@
+{
+  "name": "solarkids",
+  "version": "0.1.0",
+  "description": "SolarKids 天体运行少儿教学软件",
+  "private": true,
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "serve": "npx serve ."
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
