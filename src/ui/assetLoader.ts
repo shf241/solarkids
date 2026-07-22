@@ -103,6 +103,12 @@ export function clearAssetCache(): void {
   imageCache.clear();
 }
 
+/** 获取已缓存的素材图片（供 Canvas 渲染使用） */
+export function getCachedImage(planetId: string, skinType: SkinType): HTMLImageElement | null {
+  const cacheKey = `${planetId}_${skinType}`;
+  return imageCache.get(cacheKey) ?? null;
+}
+
 // ---- 内部工具 ----
 
 function tryLoadImage(img: HTMLImageElement, src: string): Promise<boolean> {

@@ -1,4 +1,12 @@
 import type { PlanetInfo } from './index.js';
+import { getCachedImage, type SkinType } from './assetLoader.js';
+
+let skinType: SkinType = 'svg'; // 当前皮肤类型
+
+/** 外部设置初始皮肤类型 */
+export function setSkinType(type: SkinType): void {
+  skinType = type;
+}
 
 type PreviewCallbacks = {
   updatePanel: (info: PlanetInfo | null) => void;
@@ -293,6 +301,15 @@ export function initSolarSystemPreview(
     draw();
   });
 
+  // 监听换肤事件
+  document.addEventListener('solarkids:skinChange', (event) => {
+    const detail = (event as CustomEvent<{ skinId: string; skinConfig: { type: SkinType } }>).detail;
+    if (detail?.skinConfig?.type) {
+      skinType = detail.skinConfig.type;
+      draw();
+    }
+  });
+
   window.addEventListener('resize', resize);
   callbacks.updatePanel(toPlanetInfo(PLANETS.find(p => p.id === 'earth') ?? null));
   resize();
@@ -367,6 +384,10 @@ function drawCometPath(
 
 function drawSun(ctx: CanvasRenderingContext2D, center: { x: number; y: number }, scale: number): void {
   const r = 34 * scale;
+  const sunImg = getCachedImage('sun', skinType);
+  const hasTexture = sunImg && sunImg.complete && sunImg.naturalWidth > 0;
+
+  // 外发光（无论有没有贴图都有）
   const glow = ctx.createRadialGradient(center.x, center.y, r * 0.1, center.x, center.y, r * 2.2);
   glow.addColorStop(0, 'rgba(247, 201, 72, 0.95)');
   glow.addColorStop(0.32, 'rgba(240, 140, 42, 0.55)');
@@ -376,14 +397,25 @@ function drawSun(ctx: CanvasRenderingContext2D, center: { x: number; y: number }
   ctx.arc(center.x, center.y, r * 2.3, 0, Math.PI * 2);
   ctx.fill();
 
-  const body = ctx.createRadialGradient(center.x - r * 0.35, center.y - r * 0.35, r * 0.1, center.x, center.y, r);
-  body.addColorStop(0, '#fff3a6');
-  body.addColorStop(0.55, '#f7c948');
-  body.addColorStop(1, '#f08c2a');
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
-  ctx.fill();
+  if (hasTexture) {
+    // 使用太阳贴图
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(sunImg, center.x - r, center.y - r, r * 2, r * 2);
+    ctx.restore();
+  } else {
+    // 降级：渐变代码画太阳
+    const body = ctx.createRadialGradient(center.x - r * 0.35, center.y - r * 0.35, r * 0.1, center.x, center.y, r);
+    body.addColorStop(0, '#fff3a6');
+    body.addColorStop(0.55, '#f7c948');
+    body.addColorStop(1, '#f08c2a');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawPlanet(
@@ -392,30 +424,48 @@ function drawPlanet(
   x: number,
   y: number,
   r: number,
-  state: { hovered: boolean; selected: boolean }
+  drawState: { hovered: boolean; selected: boolean }
 ): void {
-  if (state.hovered || state.selected) {
-    ctx.strokeStyle = state.selected ? '#f7c948' : '#5bc0eb';
-    ctx.lineWidth = state.selected ? 3 : 2;
+  // 选中/悬停高亮圈
+  if (drawState.hovered || drawState.selected) {
+    ctx.strokeStyle = drawState.selected ? '#f7c948' : '#5bc0eb';
+    ctx.lineWidth = drawState.selected ? 3 : 2;
     ctx.beginPath();
     ctx.arc(x, y, r + 8, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  if (planet.id === 'saturn') {
-    drawSaturnRing(ctx, x, y, r);
+  // 尝试用贴图素材
+  const img = getCachedImage(planet.id, skinType);
+  const hasTexture = img && img.complete && img.naturalWidth > 0;
+
+  if (hasTexture) {
+    // ✅ 使用素材贴图（纯净，不叠加代码纹理和光环）
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
+    ctx.restore();
+  } else {
+    // ⚠️ 降级：无素材时用代码绘制（含手绘特征和光环）
+    if (planet.id === 'saturn') {
+      drawSaturnRing(ctx, x, y, r);
+    }
+    const body = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+    body.addColorStop(0, '#ffffff');
+    body.addColorStop(0.2, planet.color);
+    body.addColorStop(1, shade(planet.color, -38));
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    drawPlanetFeatures(ctx, planet, x, y, r); // 只有降级时才画手绘特征
   }
-
-  const body = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
-  body.addColorStop(0, '#ffffff');
-  body.addColorStop(0.2, planet.color);
-  body.addColorStop(1, shade(planet.color, -38));
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  drawPlanetFeatures(ctx, planet, x, y, r);
+  // 切换皮肤调试
+  if (planet.id === 'earth') {
+    console.log(`🌍 skinType=${skinType}, hasTexture=${hasTexture}`);
+  }
 }
 
 function drawComet(

@@ -12,7 +12,7 @@ import {
 } from './ui/index.js';
 import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader.js';
 import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
-import { initSolarSystemPreview } from './ui/solarSystemPreview.js';
+import { initSolarSystemPreview, setSkinType } from './ui/solarSystemPreview.js';
 
 // ---- 全局状态 ----
 
@@ -36,6 +36,11 @@ async function init(): Promise<void> {
     // 预加载当前皮肤素材（失败会自动降级为占位图）
     await preloadAllAssets(skinsConfig);
     console.log('✅ 素材就绪（缺失素材已用占位图替代）');
+
+    // 告诉渲染器当前皮肤类型
+    const activeSkinType = skinsConfig.skins[skinsConfig.activeSkin].type;
+    setSkinType(activeSkinType);
+    console.log(`🖼️ 渲染器皮肤: ${activeSkinType}`);
   } catch (e) {
     console.warn('⚠️ 皮肤配置加载失败，使用默认配置', e);
   }
@@ -124,9 +129,13 @@ function bindControlBar(): void {
 
     'btn-skin': () => {
       if (skinsConfig) {
-        showSkinPicker(skinsConfig, (skinId, skinConfig) => {
+        showSkinPicker(skinsConfig, async (skinId, skinConfig) => {
           console.log(`🎨 切换皮肤: ${skinConfig.name}`);
           showToast(`已切换为 ${skinConfig.name}`);
+
+          // 预加载新皮肤素材
+          skinsConfig!.activeSkin = skinId;
+          await preloadAllAssets(skinsConfig!);
 
           // 通知 Canvas 重绘
           document.dispatchEvent(
