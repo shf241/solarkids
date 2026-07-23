@@ -1,4 +1,20 @@
 import type { PlanetInfo } from './index.js';
+import { getCachedImage, type SkinType } from './assetLoader.js';
+
+let skinType: SkinType = 'svg'; // 当前皮肤类型
+
+// 哈雷彗星专属素材
+const halleyImg = new Image();
+halleyImg.src = 'assets/svg/halley.svg';
+
+// 写实背景素材
+const bgRealistic = new Image();
+bgRealistic.src = 'assets/images/background.png';
+
+/** 外部设置初始皮肤类型 */
+export function setSkinType(type: SkinType): void {
+  skinType = type;
+}
 
 type PreviewCallbacks = {
   updatePanel: (info: PlanetInfo | null) => void;
@@ -293,6 +309,15 @@ export function initSolarSystemPreview(
     draw();
   });
 
+  // 监听换肤事件
+  document.addEventListener('solarkids:skinChange', (event) => {
+    const detail = (event as CustomEvent<{ skinId: string; skinConfig: { type: SkinType } }>).detail;
+    if (detail?.skinConfig?.type) {
+      skinType = detail.skinConfig.type;
+      draw();
+    }
+  });
+
   window.addEventListener('resize', resize);
   callbacks.updatePanel(toPlanetInfo(PLANETS.find(p => p.id === 'earth') ?? null));
   resize();
@@ -313,6 +338,28 @@ function drawSpace(
   height: number,
   stars: { x: number; y: number; r: number; alpha: number }[]
 ): void {
+  // 写实模式使用背景图片
+  if (skinType === 'png' && bgRealistic.complete && bgRealistic.naturalWidth > 0) {
+    ctx.fillStyle = '#050815';
+    ctx.fillRect(0, 0, width, height);
+    // 等比缩放覆盖画布（cover 效果）
+    const imgRatio = bgRealistic.naturalWidth / bgRealistic.naturalHeight;
+    const canvasRatio = width / height;
+    let dw: number, dh: number;
+    if (imgRatio > canvasRatio) {
+      dh = height;
+      dw = height * imgRatio;
+    } else {
+      dw = width;
+      dh = width / imgRatio;
+    }
+    const dx = (width - dw) / 2;
+    const dy = (height - dh) / 2;
+    ctx.drawImage(bgRealistic, dx, dy, dw, dh);
+    return;
+  }
+
+  // 卡通模式：深空渐变 + 星星
   const gradient = ctx.createRadialGradient(width * 0.48, height * 0.5, 80, width * 0.5, height * 0.5, width);
   gradient.addColorStop(0, '#152056');
   gradient.addColorStop(0.55, '#0d1536');
@@ -335,9 +382,8 @@ function drawOrbits(
   scale: number
 ): void {
   ctx.save();
-  ctx.strokeStyle = 'rgba(196, 208, 232, 0.16)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.lineWidth = 1;
-  ctx.setLineDash([4, 8]);
 
   for (const planet of PLANETS) {
     ctx.beginPath();
@@ -367,6 +413,10 @@ function drawCometPath(
 
 function drawSun(ctx: CanvasRenderingContext2D, center: { x: number; y: number }, scale: number): void {
   const r = 34 * scale;
+  const sunImg = getCachedImage('sun', skinType);
+  const hasTexture = sunImg && sunImg.complete && sunImg.naturalWidth > 0;
+
+  // 外发光（无论有没有贴图都有）
   const glow = ctx.createRadialGradient(center.x, center.y, r * 0.1, center.x, center.y, r * 2.2);
   glow.addColorStop(0, 'rgba(247, 201, 72, 0.95)');
   glow.addColorStop(0.32, 'rgba(240, 140, 42, 0.55)');
@@ -376,14 +426,25 @@ function drawSun(ctx: CanvasRenderingContext2D, center: { x: number; y: number }
   ctx.arc(center.x, center.y, r * 2.3, 0, Math.PI * 2);
   ctx.fill();
 
-  const body = ctx.createRadialGradient(center.x - r * 0.35, center.y - r * 0.35, r * 0.1, center.x, center.y, r);
-  body.addColorStop(0, '#fff3a6');
-  body.addColorStop(0.55, '#f7c948');
-  body.addColorStop(1, '#f08c2a');
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
-  ctx.fill();
+  if (hasTexture) {
+    // 使用太阳贴图
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(sunImg, center.x - r, center.y - r, r * 2, r * 2);
+    ctx.restore();
+  } else {
+    // 降级：渐变代码画太阳
+    const body = ctx.createRadialGradient(center.x - r * 0.35, center.y - r * 0.35, r * 0.1, center.x, center.y, r);
+    body.addColorStop(0, '#fff3a6');
+    body.addColorStop(0.55, '#f7c948');
+    body.addColorStop(1, '#f08c2a');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawPlanet(
@@ -392,40 +453,65 @@ function drawPlanet(
   x: number,
   y: number,
   r: number,
-  state: { hovered: boolean; selected: boolean }
+  drawState: { hovered: boolean; selected: boolean }
 ): void {
-  if (state.hovered || state.selected) {
-    ctx.strokeStyle = state.selected ? '#f7c948' : '#5bc0eb';
-    ctx.lineWidth = state.selected ? 3 : 2;
+  // 选中/悬停高亮圈
+  if (drawState.hovered || drawState.selected) {
+    ctx.strokeStyle = drawState.selected ? '#f7c948' : '#5bc0eb';
+    ctx.lineWidth = drawState.selected ? 3 : 2;
     ctx.beginPath();
     ctx.arc(x, y, r + 8, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  if (planet.id === 'saturn') {
-    drawSaturnRing(ctx, x, y, r);
+  // 尝试用贴图素材
+  const img = getCachedImage(planet.id, skinType);
+  const hasTexture = img && img.complete && img.naturalWidth > 0;
+
+  if (hasTexture) {
+    // ✅ 使用素材贴图（纯净）
+    ctx.save();
+    if (planet.id === 'saturn') {
+      // 土星不裁剪，完整展示光环（横向稍宽容纳光环）
+      ctx.drawImage(img, x - r * 1.8, y - r * 1.3, r * 3.6, r * 2.6);
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
+    }
+    ctx.restore();
+  } else {
+    // ⚠️ 降级：无素材时用代码绘制（含手绘特征和光环）
+    if (planet.id === 'saturn') {
+      drawSaturnRing(ctx, x, y, r);
+    }
+    const body = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+    body.addColorStop(0, '#ffffff');
+    body.addColorStop(0.2, planet.color);
+    body.addColorStop(1, shade(planet.color, -38));
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    drawPlanetFeatures(ctx, planet, x, y, r); // 只有降级时才画手绘特征
   }
-
-  const body = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
-  body.addColorStop(0, '#ffffff');
-  body.addColorStop(0.2, planet.color);
-  body.addColorStop(1, shade(planet.color, -38));
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
-
-  drawPlanetFeatures(ctx, planet, x, y, r);
+  // 切换皮肤调试
+  if (planet.id === 'earth') {
+    console.log(`🌍 skinType=${skinType}, hasTexture=${hasTexture}`);
+  }
 }
 
 function drawComet(
   ctx: CanvasRenderingContext2D,
   position: { x: number; y: number },
   r: number,
-  state: { hovered: boolean; selected: boolean }
+  drawState: { hovered: boolean; selected: boolean }
 ): void {
   const { x, y } = position;
+  const hasHalley = halleyImg.complete && halleyImg.naturalWidth > 0;
 
+  // 彗尾（贴图和降级都会画）
   const tail = ctx.createLinearGradient(x + r * 0.2, y, x - r * 8, y + r * 2.6);
   tail.addColorStop(0, 'rgba(233, 251, 255, 0.85)');
   tail.addColorStop(0.45, 'rgba(91, 192, 235, 0.28)');
@@ -438,22 +524,33 @@ function drawComet(
   ctx.closePath();
   ctx.fill();
 
-  if (state.hovered || state.selected) {
-    ctx.strokeStyle = state.selected ? '#f7c948' : '#5bc0eb';
-    ctx.lineWidth = state.selected ? 3 : 2;
+  if (hasHalley) {
+    // ✅ SVG 彗星本体 + 手绘彗尾
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-0.3);
+    ctx.drawImage(halleyImg, -r * 0.8, -r * 0.6, r * 1.6, r * 1.2);
+    ctx.restore();
+  } else {
+    // ⚠️ 降级：代码绘制彗核
+    const nucleus = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 1, x, y, r);
+    nucleus.addColorStop(0, '#ffffff');
+    nucleus.addColorStop(0.45, '#e9fbff');
+    nucleus.addColorStop(1, '#5bc0eb');
+    ctx.fillStyle = nucleus;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 选中/悬停高亮
+  if (drawState.hovered || drawState.selected) {
+    ctx.strokeStyle = drawState.selected ? '#f7c948' : '#5bc0eb';
+    ctx.lineWidth = drawState.selected ? 3 : 2;
     ctx.beginPath();
     ctx.arc(x, y, r + 8, 0, Math.PI * 2);
     ctx.stroke();
   }
-
-  const nucleus = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, 1, x, y, r);
-  nucleus.addColorStop(0, '#ffffff');
-  nucleus.addColorStop(0.45, '#e9fbff');
-  nucleus.addColorStop(1, '#5bc0eb');
-  ctx.fillStyle = nucleus;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
 }
 
 function drawPlanetFeatures(ctx: CanvasRenderingContext2D, planet: PlanetPreview, x: number, y: number, r: number): void {

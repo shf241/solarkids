@@ -14,7 +14,8 @@
         "jupiter": "assets/svg/jupiter.svg",
         "saturn":  "assets/svg/saturn.svg",
         "uranus":  "assets/svg/uranus.svg",
-        "neptune": "assets/svg/neptune.svg"
+        "neptune": "assets/svg/neptune.svg",
+        "pluto":   "assets/svg/pluto.svg"
       }
     },
     "realistic": {
@@ -30,7 +31,8 @@
         "jupiter": "assets/images/jupiter.png",
         "saturn":  "assets/images/saturn.png",
         "uranus":  "assets/images/uranus.png",
-        "neptune": "assets/images/neptune.png"
+        "neptune": "assets/images/neptune.png",
+        "pluto":   "assets/images/pluto.png"
       }
     }
   },

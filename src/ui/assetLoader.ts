@@ -17,7 +17,8 @@ export type PlanetId =
   | 'jupiter'
   | 'saturn'
   | 'uranus'
-  | 'neptune';
+  | 'neptune'
+  | 'pluto';
 
 export type SkinType = 'svg' | 'png';
 
@@ -101,6 +102,12 @@ export async function preloadAllAssets(config: SkinsData): Promise<void> {
 /** 清空缓存（换肤时调用） */
 export function clearAssetCache(): void {
   imageCache.clear();
+}
+
+/** 获取已缓存的素材图片（供 Canvas 渲染使用） */
+export function getCachedImage(planetId: string, skinType: SkinType): HTMLImageElement | null {
+  const cacheKey = `${planetId}_${skinType}`;
+  return imageCache.get(cacheKey) ?? null;
 }
 
 // ---- 内部工具 ----
