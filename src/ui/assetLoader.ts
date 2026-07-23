@@ -17,7 +17,8 @@ export type PlanetId =
   | 'jupiter'
   | 'saturn'
   | 'uranus'
-  | 'neptune';
+  | 'neptune'
+  | 'pluto';
 
 export type SkinType = 'svg' | 'png';
 
