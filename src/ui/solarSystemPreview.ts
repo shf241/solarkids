@@ -21,6 +21,11 @@ type PreviewCallbacks = {
   showToast: (message: string, duration?: number) => void;
 };
 
+export interface SolarSystemPreviewController {
+  setActive(active: boolean): void;
+  isActive(): boolean;
+}
+
 type PlanetPreview = {
   id: string;
   name: string;
@@ -196,10 +201,11 @@ export function initSolarSystemPreview(
   canvas: HTMLCanvasElement,
   container: HTMLElement,
   callbacks: PreviewCallbacks
-): void {
+): SolarSystemPreviewController | null {
   const context = canvas.getContext('2d');
-  if (!context) return;
+  if (!context) return null;
   const ctx: CanvasRenderingContext2D = context;
+  let active = true;
 
   const stars = createStars(180);
   const state = {
@@ -209,6 +215,7 @@ export function initSolarSystemPreview(
   };
 
   function resize(): void {
+    if (!active) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.max(1, Math.floor(container.clientWidth * dpr));
     canvas.height = Math.max(1, Math.floor(container.clientHeight * dpr));
@@ -219,6 +226,7 @@ export function initSolarSystemPreview(
   }
 
   function draw(): void {
+    if (!active) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
     const center = { x: width * 0.48, y: height * 0.49 };
@@ -271,6 +279,7 @@ export function initSolarSystemPreview(
   }
 
   canvas.addEventListener('pointermove', event => {
+    if (!active) return;
     const planet = pickPlanet(event);
     const next = planet?.id ?? null;
     if (next !== state.hoveredId) {
@@ -281,12 +290,14 @@ export function initSolarSystemPreview(
   });
 
   canvas.addEventListener('pointerleave', () => {
+    if (!active) return;
     state.hoveredId = null;
     canvas.style.cursor = 'grab';
     draw();
   });
 
   canvas.addEventListener('click', event => {
+    if (!active) return;
     const planet = pickPlanet(event);
     if (!planet) return;
     state.selectedId = planet.id;
@@ -296,12 +307,14 @@ export function initSolarSystemPreview(
   });
 
   document.addEventListener('solarkids:zoom', event => {
+    if (!active) return;
     const delta = (event as CustomEvent<{ delta: number }>).detail?.delta ?? 1;
     state.scale = clamp(state.scale * delta, 0.72, 1.42);
     draw();
   });
 
   document.addEventListener('solarkids:resetView', () => {
+    if (!active) return;
     state.scale = 1;
     state.selectedId = 'earth';
     state.hoveredId = null;
@@ -311,6 +324,7 @@ export function initSolarSystemPreview(
 
   // 监听换肤事件
   document.addEventListener('solarkids:skinChange', (event) => {
+    if (!active) return;
     const detail = (event as CustomEvent<{ skinId: string; skinConfig: { type: SkinType } }>).detail;
     if (detail?.skinConfig?.type) {
       skinType = detail.skinConfig.type;
@@ -321,6 +335,26 @@ export function initSolarSystemPreview(
   window.addEventListener('resize', resize);
   callbacks.updatePanel(toPlanetInfo(PLANETS.find(p => p.id === 'earth') ?? null));
   resize();
+
+  return {
+    setActive(nextActive: boolean): void {
+      if (active === nextActive) return;
+      active = nextActive;
+      state.hoveredId = null;
+      canvas.style.cursor = active ? 'grab' : 'default';
+      if (active) {
+        state.scale = 1;
+        state.selectedId = 'earth';
+        callbacks.updatePanel(
+          toPlanetInfo(PLANETS.find(planet => planet.id === 'earth') ?? null)
+        );
+        resize();
+      }
+    },
+    isActive(): boolean {
+      return active;
+    },
+  };
 }
 
 function createStars(count: number): { x: number; y: number; r: number; alpha: number }[] {
