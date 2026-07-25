@@ -10,21 +10,35 @@ import {
   updatePanel,
   bindControls,
 } from './ui/index.js';
-import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader.js';
+import {
+  loadSkinsConfig,
+  preloadAllAssets,
+  type SkinsData,
+  type SkinType,
+} from './ui/assetLoader.js';
 import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
-import { initSolarSystemPreview, setSkinType } from './ui/solarSystemPreview.js';
+import {
+  initSolarSystemPreview,
+  setSkinType,
+  type SolarSystemPreviewController,
+} from './ui/solarSystemPreview.js';
 import {
   bindCanvasControlEvents,
   createCanvasRuntime,
   type CanvasRuntime,
 } from './canvas/index.js';
+import { registerMember1Scenes } from './canvas/scenes/registerMember1Scenes.js';
 
 // ---- 全局状态 ----
 
 let skinsConfig: SkinsData | null = null;
 let currentPlanet: string | null = null;
+let currentSkinType: SkinType = 'svg';
 let canvasRuntime: CanvasRuntime | null = null;
 let unbindCanvasControls: (() => void) | null = null;
+let previewController: SolarSystemPreviewController | null = null;
+let unregisterMember1Scenes: (() => void) | null = null;
+let unbindSceneSync: (() => void) | null = null;
 
 // ---- 应用启动 ----
 
@@ -46,6 +60,7 @@ async function init(): Promise<void> {
 
     // 告诉渲染器当前皮肤类型
     const activeSkinType = skinsConfig.skins[skinsConfig.activeSkin].type;
+    currentSkinType = activeSkinType;
     setSkinType(activeSkinType);
     console.log(`🖼️ 渲染器皮肤: ${activeSkinType}`);
   } catch (e) {
@@ -143,6 +158,8 @@ function bindControlBar(): void {
           // 预加载新皮肤素材
           skinsConfig!.activeSkin = skinId;
           await preloadAllAssets(skinsConfig!);
+          currentSkinType = skinConfig.type;
+          setSkinType(currentSkinType);
 
           // 通知 Canvas 重绘
           document.dispatchEvent(
@@ -150,6 +167,7 @@ function bindControlBar(): void {
               detail: { skinId, skinConfig },
             })
           );
+          canvasRuntime?.renderOnce();
         });
       }
     },
@@ -210,7 +228,10 @@ function initCanvas(): void {
   if (!canvas || !container) return;
 
   // 静态预览暂时保留；模块1完成后迁移为正式 CanvasScene。
-  initSolarSystemPreview(canvas, container, { updatePanel, showToast });
+  previewController = initSolarSystemPreview(canvas, container, {
+    updatePanel,
+    showToast,
+  });
 
   canvasRuntime = createCanvasRuntime({
     canvas,
@@ -227,19 +248,91 @@ function initCanvas(): void {
   });
 
   // 新运行时当前没有激活场景，因此不会覆盖现有静态预览。
+  unregisterMember1Scenes?.();
+  unregisterMember1Scenes = registerMember1Scenes(canvasRuntime, {
+    getSkinType: () => currentSkinType,
+  });
+
   unbindCanvasControls?.();
   unbindCanvasControls = bindCanvasControlEvents(canvasRuntime);
+
+  unbindSceneSync?.();
+  unbindSceneSync = canvasRuntime.scenes.onChange(({ sceneId }) => {
+    previewController?.setActive(sceneId === null);
+    updateTopicButtonState(sceneId);
+    updateTopicPanel(sceneId);
+  });
+
+  const returnToOverview = (): void => {
+    if (canvasRuntime?.scenes.hasActiveScene) {
+      canvasRuntime.scenes.switchTo(null);
+    }
+  };
+  const redrawSceneAssets = (): void => {
+    canvasRuntime?.renderOnce();
+  };
+  document.addEventListener('solarkids:resetView', returnToOverview);
+  document.addEventListener('solarkids:sceneAssetReady', redrawSceneAssets);
 
   window.addEventListener(
     'beforeunload',
     () => {
+      document.removeEventListener('solarkids:resetView', returnToOverview);
+      document.removeEventListener(
+        'solarkids:sceneAssetReady',
+        redrawSceneAssets
+      );
+      unbindSceneSync?.();
+      unbindSceneSync = null;
       unbindCanvasControls?.();
       unbindCanvasControls = null;
+      unregisterMember1Scenes?.();
+      unregisterMember1Scenes = null;
       canvasRuntime?.dispose();
       canvasRuntime = null;
+      previewController = null;
     },
     { once: true }
   );
+}
+
+function updateTopicButtonState(sceneId: string | null): void {
+  const eclipseButton = document.getElementById('btn-eclipse');
+  const magneticButton = document.getElementById('btn-magnetic');
+  eclipseButton?.setAttribute(
+    'aria-pressed',
+    String(sceneId === 'eclipse')
+  );
+  magneticButton?.setAttribute(
+    'aria-pressed',
+    String(sceneId === 'magnetic')
+  );
+}
+
+function updateTopicPanel(sceneId: string | null): void {
+  if (sceneId === 'eclipse') {
+    updatePanel({
+      name: 'Eclipse Lab',
+      nameCN: '日食与月食实验室',
+      emoji: '🌑',
+      desc: '切换日食、月食和观察视角，看看太阳、地球、月球排成一线时光影如何变化。',
+      stats: [
+        { label: '快捷键', value: '1 / 2 切换' },
+        { label: '视角', value: 'V 键切换' },
+      ],
+    });
+  } else if (sceneId === 'magnetic') {
+    updatePanel({
+      name: 'Magnetic Field Lab',
+      nameCN: '太阳与地球磁场',
+      emoji: '🧲',
+      desc: '发光粒子沿磁力线运动，帮助观察太阳磁场与地球磁场保护屏障。',
+      stats: [
+        { label: '模式', value: '太阳 / 地球' },
+        { label: '快捷键', value: '1 / 2 / 3' },
+      ],
+    });
+  }
 }
 
 // ---- 存储占位（成员4：数据存储负责人） ----
