@@ -83,7 +83,13 @@ export function createMagneticScene(options: MagneticSceneOptions): CanvasScene 
       const { width, height } = context.getViewport();
       const skinType = options.getSkinType();
       buttons = createMagneticButtons(width);
-      drawSpaceBackdrop(context.context2D, width, height, '#172e53');
+      drawSpaceBackdrop(
+        context.context2D,
+        width,
+        height,
+        '#172e53',
+        skinType
+      );
       drawSceneHeader(
         context.context2D,
         width,

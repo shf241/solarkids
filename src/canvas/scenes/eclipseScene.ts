@@ -92,7 +92,13 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
       const { width, height } = context.getViewport();
       const skinType = options.getSkinType();
       buttons = createEclipseButtons(width);
-      drawSpaceBackdrop(context.context2D, width, height, '#1d2854');
+      drawSpaceBackdrop(
+        context.context2D,
+        width,
+        height,
+        '#1d2854',
+        skinType
+      );
       drawSceneHeader(
         context.context2D,
         width,

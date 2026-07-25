@@ -14,12 +14,38 @@ export interface SceneButton {
   height: number;
 }
 
+const realisticBackground = new Image();
+realisticBackground.addEventListener(
+  'load',
+  () => {
+    document.dispatchEvent(new CustomEvent('solarkids:sceneAssetReady'));
+  },
+  { once: true }
+);
+realisticBackground.src = 'assets/images/background.png';
+
 export function drawSpaceBackdrop(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  accent = '#243a73'
+  accent = '#243a73',
+  skinType: SkinType = 'svg'
 ): void {
+  if (
+    skinType === 'png' &&
+    realisticBackground.complete &&
+    realisticBackground.naturalWidth > 0
+  ) {
+    drawCoverImage(ctx, realisticBackground, width, height);
+    const overlay = ctx.createLinearGradient(0, 0, width, height);
+    overlay.addColorStop(0, 'rgba(3, 8, 24, 0.28)');
+    overlay.addColorStop(0.55, 'rgba(3, 8, 24, 0.45)');
+    overlay.addColorStop(1, 'rgba(3, 8, 24, 0.68)');
+    ctx.fillStyle = overlay;
+    ctx.fillRect(0, 0, width, height);
+    return;
+  }
+
   const gradient = ctx.createRadialGradient(
     width * 0.5,
     height * 0.42,
@@ -276,4 +302,30 @@ export function clamp(value: number, min: number, max: number): number {
 function pseudoRandom(seed: number): number {
   const value = Math.sin(seed * 12.9898) * 43758.5453;
   return value - Math.floor(value);
+}
+
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number
+): void {
+  const imageRatio = image.naturalWidth / image.naturalHeight;
+  const canvasRatio = width / height;
+  let drawWidth = width;
+  let drawHeight = height;
+
+  if (imageRatio > canvasRatio) {
+    drawWidth = height * imageRatio;
+  } else {
+    drawHeight = width / imageRatio;
+  }
+
+  ctx.drawImage(
+    image,
+    (width - drawWidth) / 2,
+    (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight
+  );
 }

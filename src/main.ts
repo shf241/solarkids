@@ -268,12 +268,20 @@ function initCanvas(): void {
       canvasRuntime.scenes.switchTo(null);
     }
   };
+  const redrawSceneAssets = (): void => {
+    canvasRuntime?.renderOnce();
+  };
   document.addEventListener('solarkids:resetView', returnToOverview);
+  document.addEventListener('solarkids:sceneAssetReady', redrawSceneAssets);
 
   window.addEventListener(
     'beforeunload',
     () => {
       document.removeEventListener('solarkids:resetView', returnToOverview);
+      document.removeEventListener(
+        'solarkids:sceneAssetReady',
+        redrawSceneAssets
+      );
       unbindSceneSync?.();
       unbindSceneSync = null;
       unbindCanvasControls?.();
