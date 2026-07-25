@@ -13,11 +13,18 @@ import {
 import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader.js';
 import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
 import { initSolarSystemPreview, setSkinType } from './ui/solarSystemPreview.js';
+import {
+  bindCanvasControlEvents,
+  createCanvasRuntime,
+  type CanvasRuntime,
+} from './canvas/index.js';
 
 // ---- 全局状态 ----
 
 let skinsConfig: SkinsData | null = null;
 let currentPlanet: string | null = null;
+let canvasRuntime: CanvasRuntime | null = null;
+let unbindCanvasControls: (() => void) | null = null;
 
 // ---- 应用启动 ----
 
@@ -195,14 +202,44 @@ function showHelpModal(): void {
   });
 }
 
-// ---- Canvas 占位（成员3：核心动画负责人） ----
+// ---- Canvas 公共运行时（成员3：核心动画负责人） ----
 
 function initCanvas(): void {
   const canvas = document.getElementById('main-canvas') as HTMLCanvasElement;
   const container = document.getElementById('canvas-container');
   if (!canvas || !container) return;
 
+  // 静态预览暂时保留；模块1完成后迁移为正式 CanvasScene。
   initSolarSystemPreview(canvas, container, { updatePanel, showToast });
+
+  canvasRuntime = createCanvasRuntime({
+    canvas,
+    container,
+    autoClear: true,
+    animation: {
+      timeScale: 1,
+      maxDeltaMs: 100,
+    },
+    camera: {
+      minZoom: 0.5,
+      maxZoom: 4,
+    },
+  });
+
+  // 新运行时当前没有激活场景，因此不会覆盖现有静态预览。
+  unbindCanvasControls?.();
+  unbindCanvasControls = bindCanvasControlEvents(canvasRuntime);
+
+  window.addEventListener(
+    'beforeunload',
+    () => {
+      unbindCanvasControls?.();
+      unbindCanvasControls = null;
+      canvasRuntime?.dispose();
+      canvasRuntime = null;
+    },
+    { once: true }
+  );
 }
 
 // ---- 存储占位（成员4：数据存储负责人） ----
