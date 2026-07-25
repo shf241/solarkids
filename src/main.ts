@@ -10,7 +10,12 @@ import {
   updatePanel,
   bindControls,
 } from './ui/index.js';
-import { loadSkinsConfig, preloadAllAssets, type SkinsData } from './ui/assetLoader.js';
+import {
+  loadSkinsConfig,
+  preloadAllAssets,
+  type SkinsData,
+  type SkinType,
+} from './ui/assetLoader.js';
 import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
 import {
   initSolarSystemPreview,
@@ -28,6 +33,7 @@ import { registerMember1Scenes } from './canvas/scenes/registerMember1Scenes.js'
 
 let skinsConfig: SkinsData | null = null;
 let currentPlanet: string | null = null;
+let currentSkinType: SkinType = 'svg';
 let canvasRuntime: CanvasRuntime | null = null;
 let unbindCanvasControls: (() => void) | null = null;
 let previewController: SolarSystemPreviewController | null = null;
@@ -54,6 +60,7 @@ async function init(): Promise<void> {
 
     // 告诉渲染器当前皮肤类型
     const activeSkinType = skinsConfig.skins[skinsConfig.activeSkin].type;
+    currentSkinType = activeSkinType;
     setSkinType(activeSkinType);
     console.log(`🖼️ 渲染器皮肤: ${activeSkinType}`);
   } catch (e) {
@@ -151,6 +158,8 @@ function bindControlBar(): void {
           // 预加载新皮肤素材
           skinsConfig!.activeSkin = skinId;
           await preloadAllAssets(skinsConfig!);
+          currentSkinType = skinConfig.type;
+          setSkinType(currentSkinType);
 
           // 通知 Canvas 重绘
           document.dispatchEvent(
@@ -158,6 +167,7 @@ function bindControlBar(): void {
               detail: { skinId, skinConfig },
             })
           );
+          canvasRuntime?.renderOnce();
         });
       }
     },
@@ -239,7 +249,9 @@ function initCanvas(): void {
 
   // 新运行时当前没有激活场景，因此不会覆盖现有静态预览。
   unregisterMember1Scenes?.();
-  unregisterMember1Scenes = registerMember1Scenes(canvasRuntime);
+  unregisterMember1Scenes = registerMember1Scenes(canvasRuntime, {
+    getSkinType: () => currentSkinType,
+  });
 
   unbindCanvasControls?.();
   unbindCanvasControls = bindCanvasControlEvents(canvasRuntime);
@@ -247,6 +259,7 @@ function initCanvas(): void {
   unbindSceneSync?.();
   unbindSceneSync = canvasRuntime.scenes.onChange(({ sceneId }) => {
     previewController?.setActive(sceneId === null);
+    updateTopicButtonState(sceneId);
     updateTopicPanel(sceneId);
   });
 
@@ -272,6 +285,19 @@ function initCanvas(): void {
       previewController = null;
     },
     { once: true }
+  );
+}
+
+function updateTopicButtonState(sceneId: string | null): void {
+  const eclipseButton = document.getElementById('btn-eclipse');
+  const magneticButton = document.getElementById('btn-magnetic');
+  eclipseButton?.setAttribute(
+    'aria-pressed',
+    String(sceneId === 'eclipse')
+  );
+  magneticButton?.setAttribute(
+    'aria-pressed',
+    String(sceneId === 'magnetic')
   );
 }
 

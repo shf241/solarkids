@@ -3,12 +3,14 @@ import type {
   CanvasScene,
   FrameSnapshot,
 } from '../types.js';
+import type { SkinType } from '../../ui/assetLoader.js';
 import {
   clamp,
   createToolbarButtons,
   drawBodyLabel,
   drawInfoChip,
   drawSceneHeader,
+  drawSkinnedBody,
   drawSpaceBackdrop,
   drawTimeline,
   drawToolbar,
@@ -24,7 +26,11 @@ type EclipseView = 'overview' | 'earth';
 const ACCENT = '#ffd35c';
 const CYCLE_MS = 12_000;
 
-export function createEclipseScene(): CanvasScene {
+export interface EclipseSceneOptions {
+  getSkinType: () => SkinType;
+}
+
+export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
   let kind: EclipseKind = 'solar';
   let view: EclipseView = 'overview';
   let progress = 0.5;
@@ -84,6 +90,7 @@ export function createEclipseScene(): CanvasScene {
 
     render(frame, context) {
       const { width, height } = context.getViewport();
+      const skinType = options.getSkinType();
       buttons = createEclipseButtons(width);
       drawSpaceBackdrop(context.context2D, width, height, '#1d2854');
       drawSceneHeader(
@@ -101,9 +108,24 @@ export function createEclipseScene(): CanvasScene {
       );
 
       if (view === 'earth') {
-        drawEarthView(context.context2D, width, height, kind, progress);
+        drawEarthView(
+          context.context2D,
+          width,
+          height,
+          kind,
+          progress,
+          skinType
+        );
       } else {
-        drawOverview(context.context2D, width, height, kind, progress, frame);
+        drawOverview(
+          context.context2D,
+          width,
+          height,
+          kind,
+          progress,
+          frame,
+          skinType
+        );
       }
 
       drawTimeline(
@@ -153,7 +175,8 @@ function drawOverview(
   height: number,
   kind: EclipseKind,
   progress: number,
-  frame: Readonly<FrameSnapshot>
+  frame: Readonly<FrameSnapshot>,
+  skinType: SkinType
 ): void {
   const compact = width < 620;
   const top = compact ? 120 : 132;
@@ -186,14 +209,15 @@ function drawOverview(
     drawShadowCone(ctx, earth, moon, 29, 14, alignment, '#121729');
   }
 
-  drawSun(ctx, sun.x, sun.y, compact ? 34 : 48, frame.elapsedMs);
-  drawEarth(ctx, earth.x, earth.y, compact ? 22 : 29);
+  drawSun(ctx, sun.x, sun.y, compact ? 34 : 48, frame.elapsedMs, skinType);
+  drawEarth(ctx, earth.x, earth.y, compact ? 22 : 29, skinType);
   drawMoon(
     ctx,
     moon.x,
     moon.y,
     compact ? 11 : 14,
-    kind === 'lunar' ? alignment : 0
+    kind === 'lunar' ? alignment : 0,
+    skinType
   );
 
   drawBodyLabel(ctx, '太阳', sun.x, sun.y + (compact ? 42 : 58));
@@ -230,7 +254,8 @@ function drawEarthView(
   width: number,
   height: number,
   kind: EclipseKind,
-  progress: number
+  progress: number,
+  skinType: SkinType
 ): void {
   const compact = width < 620;
   const centerX = width * 0.5;
@@ -252,10 +277,11 @@ function drawEarthView(
     ctx.fillStyle = sky;
     ctx.fillRect(0, compact ? 108 : 120, width, height);
 
-    drawSun(ctx, centerX, centerY, sunRadius, 0);
-    ctx.fillStyle = '#080b13';
+    drawSun(ctx, centerX, centerY, sunRadius, 0, skinType);
+    drawMoon(ctx, moonX, moonY, moonRadius, 0, skinType);
+    ctx.fillStyle = 'rgba(4, 7, 15, 0.93)';
     ctx.beginPath();
-    ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+    ctx.arc(moonX, moonY, moonRadius * 0.96, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = 'rgba(190, 211, 242, 0.32)';
     ctx.lineWidth = 1.5;
@@ -264,7 +290,7 @@ function drawEarthView(
   } else {
     const moonRadius = Math.min(width, height) * (compact ? 0.12 : 0.15);
     const shadowX = centerX + phaseOffset * moonRadius * 2.2;
-    drawMoon(ctx, centerX, centerY, moonRadius, 0.72);
+    drawMoon(ctx, centerX, centerY, moonRadius, 0.72, skinType);
 
     ctx.save();
     ctx.beginPath();
@@ -376,7 +402,8 @@ function drawSun(
   x: number,
   y: number,
   radius: number,
-  elapsedMs: number
+  elapsedMs: number,
+  skinType: SkinType
 ): void {
   const pulse = 1 + Math.sin(elapsedMs / 450) * 0.035;
   const glow = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius * 1.9);
@@ -388,29 +415,33 @@ function drawSun(
   ctx.arc(x, y, radius * 1.9 * pulse, 0, Math.PI * 2);
   ctx.fill();
 
-  const body = ctx.createRadialGradient(
-    x - radius * 0.28,
-    y - radius * 0.28,
-    radius * 0.05,
-    x,
-    y,
-    radius
-  );
-  body.addColorStop(0, '#fffbd0');
-  body.addColorStop(0.5, '#ffd35c');
-  body.addColorStop(1, '#f28a24');
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fill();
+  if (!drawSkinnedBody(ctx, 'sun', skinType, x, y, radius)) {
+    const body = ctx.createRadialGradient(
+      x - radius * 0.28,
+      y - radius * 0.28,
+      radius * 0.05,
+      x,
+      y,
+      radius
+    );
+    body.addColorStop(0, '#fffbd0');
+    body.addColorStop(0.5, '#ffd35c');
+    body.addColorStop(1, '#f28a24');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawEarth(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  radius: number
+  radius: number,
+  skinType: SkinType
 ): void {
+  if (drawSkinnedBody(ctx, 'earth', skinType, x, y, radius)) return;
   const ocean = ctx.createRadialGradient(
     x - radius * 0.35,
     y - radius * 0.3,
@@ -455,31 +486,38 @@ function drawMoon(
   x: number,
   y: number,
   radius: number,
-  lunarTint: number
+  lunarTint: number,
+  skinType: SkinType
 ): void {
-  const body = ctx.createRadialGradient(
-    x - radius * 0.3,
-    y - radius * 0.35,
-    1,
-    x,
-    y,
-    radius
-  );
-  body.addColorStop(
-    0,
-    lunarTint > 0.4 ? 'rgb(255, 184, 128)' : '#ffffff'
-  );
-  body.addColorStop(
-    0.58,
-    lunarTint > 0.4 ? 'rgb(184, 91, 65)' : '#cbd2dc'
-  );
-  body.addColorStop(1, lunarTint > 0.4 ? '#71372f' : '#7b8492');
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fill();
+  const hasTexture = drawSkinnedBody(ctx, 'moon', skinType, x, y, radius);
+  if (!hasTexture) {
+    const body = ctx.createRadialGradient(
+      x - radius * 0.3,
+      y - radius * 0.35,
+      1,
+      x,
+      y,
+      radius
+    );
+    body.addColorStop(
+      0,
+      lunarTint > 0.4 ? 'rgb(255, 184, 128)' : '#ffffff'
+    );
+    body.addColorStop(
+      0.58,
+      lunarTint > 0.4 ? 'rgb(184, 91, 65)' : '#cbd2dc'
+    );
+    body.addColorStop(1, lunarTint > 0.4 ? '#71372f' : '#7b8492');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
-  ctx.fillStyle = 'rgba(53, 58, 69, 0.28)';
+  ctx.fillStyle =
+    lunarTint > 0.4
+      ? `rgba(132, 43, 28, ${Math.min(0.52, lunarTint * 0.55)})`
+      : 'rgba(53, 58, 69, 0.22)';
   for (const [dx, dy, size] of [
     [-0.28, -0.18, 0.16],
     [0.24, -0.08, 0.12],

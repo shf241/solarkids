@@ -1,4 +1,9 @@
 import type { Point2D } from '../types.js';
+import {
+  getCachedImage,
+  type PlanetId,
+  type SkinType,
+} from '../../ui/assetLoader.js';
 
 export interface SceneButton {
   id: string;
@@ -225,6 +230,25 @@ export function drawBodyLabel(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
   ctx.fillText(text, x, y);
+}
+
+export function drawSkinnedBody(
+  ctx: CanvasRenderingContext2D,
+  planetId: PlanetId,
+  skinType: SkinType,
+  x: number,
+  y: number,
+  radius: number
+): boolean {
+  const image = getCachedImage(planetId, skinType);
+  if (!image || !image.complete || image.naturalWidth <= 0) return false;
+
+  const scale = planetId === 'sun' ? 2.45 : 2;
+  const size = radius * scale;
+  ctx.save();
+  ctx.drawImage(image, x - size / 2, y - size / 2, size, size);
+  ctx.restore();
+  return true;
 }
 
 export function roundedRect(

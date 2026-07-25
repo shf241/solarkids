@@ -3,11 +3,13 @@ import type {
   CanvasScene,
   Point2D,
 } from '../types.js';
+import type { SkinType } from '../../ui/assetLoader.js';
 import {
   createToolbarButtons,
   drawBodyLabel,
   drawInfoChip,
   drawSceneHeader,
+  drawSkinnedBody,
   drawSpaceBackdrop,
   drawToolbar,
   getCanvasPoint,
@@ -21,7 +23,11 @@ type MagneticMode = 'compare' | 'sun-field' | 'earth-field';
 const SUN_ACCENT = '#ffb34d';
 const EARTH_ACCENT = '#58d8ff';
 
-export function createMagneticScene(): CanvasScene {
+export interface MagneticSceneOptions {
+  getSkinType: () => SkinType;
+}
+
+export function createMagneticScene(options: MagneticSceneOptions): CanvasScene {
   let mode: MagneticMode = 'compare';
   let elapsedSeconds = 0;
   let runtimeContext: CanvasRuntimeContext | null = null;
@@ -75,6 +81,7 @@ export function createMagneticScene(): CanvasScene {
 
     render(_frame, context) {
       const { width, height } = context.getViewport();
+      const skinType = options.getSkinType();
       buttons = createMagneticButtons(width);
       drawSpaceBackdrop(context.context2D, width, height, '#172e53');
       drawSceneHeader(
@@ -92,11 +99,29 @@ export function createMagneticScene(): CanvasScene {
       );
 
       if (mode === 'sun-field') {
-        drawSunFieldFocus(context.context2D, width, height, elapsedSeconds);
+        drawSunFieldFocus(
+          context.context2D,
+          width,
+          height,
+          elapsedSeconds,
+          skinType
+        );
       } else if (mode === 'earth-field') {
-        drawEarthFieldFocus(context.context2D, width, height, elapsedSeconds);
+        drawEarthFieldFocus(
+          context.context2D,
+          width,
+          height,
+          elapsedSeconds,
+          skinType
+        );
       } else {
-        drawComparison(context.context2D, width, height, elapsedSeconds);
+        drawComparison(
+          context.context2D,
+          width,
+          height,
+          elapsedSeconds,
+          skinType
+        );
       }
     },
 
@@ -133,7 +158,8 @@ function drawComparison(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  elapsed: number
+  elapsed: number,
+  skinType: SkinType
 ): void {
   const compact = width < 620;
   const centerY = (compact ? 118 : 132) + (height - (compact ? 180 : 205)) * 0.48;
@@ -151,8 +177,8 @@ function drawComparison(
   drawSolarWind(ctx, sun, earth, elapsed, width);
   drawDipoleField(ctx, sun, sun.radius, SUN_ACCENT, elapsed, 0.8, 1.18);
   drawDipoleField(ctx, earth, earth.radius, EARTH_ACCENT, elapsed, 1.25, 1.45);
-  drawSunBody(ctx, sun.x, sun.y, sun.radius, elapsed);
-  drawEarthBody(ctx, earth.x, earth.y, earth.radius);
+  drawSunBody(ctx, sun.x, sun.y, sun.radius, elapsed, skinType);
+  drawEarthBody(ctx, earth.x, earth.y, earth.radius, skinType);
   drawPoles(ctx, sun, sun.radius, SUN_ACCENT);
   drawPoles(ctx, earth, earth.radius, EARTH_ACCENT);
 
@@ -176,7 +202,8 @@ function drawSunFieldFocus(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  elapsed: number
+  elapsed: number,
+  skinType: SkinType
 ): void {
   const compact = width < 620;
   const center = {
@@ -195,7 +222,7 @@ function drawSunFieldFocus(
     0.72 + activity * 0.25,
     1.45
   );
-  drawSunBody(ctx, center.x, center.y, radius, elapsed);
+  drawSunBody(ctx, center.x, center.y, radius, elapsed, skinType);
   drawPoles(ctx, center, radius, SUN_ACCENT);
   drawBodyLabel(ctx, '太阳磁场', center.x, center.y + radius + 16);
 
@@ -225,7 +252,8 @@ function drawEarthFieldFocus(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  elapsed: number
+  elapsed: number,
+  skinType: SkinType
 ): void {
   const compact = width < 620;
   const center = {
@@ -236,7 +264,7 @@ function drawEarthFieldFocus(
 
   drawMagnetosphere(ctx, center, radius, width, elapsed);
   drawDipoleField(ctx, center, radius, EARTH_ACCENT, elapsed, 1.2, 1.75);
-  drawEarthBody(ctx, center.x, center.y, radius);
+  drawEarthBody(ctx, center.x, center.y, radius, skinType);
   drawPoles(ctx, center, radius, EARTH_ACCENT);
   drawBodyLabel(ctx, '地球磁场', center.x, center.y + radius + 16);
 
@@ -410,7 +438,8 @@ function drawSunBody(
   x: number,
   y: number,
   radius: number,
-  elapsed: number
+  elapsed: number,
+  skinType: SkinType
 ): void {
   const pulse = 1 + Math.sin(elapsed * 1.8) * 0.035;
   const glow = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius * 2.2);
@@ -422,22 +451,26 @@ function drawSunBody(
   ctx.arc(x, y, radius * 2.2 * pulse, 0, Math.PI * 2);
   ctx.fill();
 
-  const body = ctx.createRadialGradient(
-    x - radius * 0.3,
-    y - radius * 0.32,
-    1,
-    x,
-    y,
-    radius
-  );
-  body.addColorStop(0, '#fff9b0');
-  body.addColorStop(0.5, '#ffbd4c');
-  body.addColorStop(1, '#e86e23');
-  ctx.fillStyle = body;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fill();
+  const hasTexture = drawSkinnedBody(ctx, 'sun', skinType, x, y, radius);
+  if (!hasTexture) {
+    const body = ctx.createRadialGradient(
+      x - radius * 0.3,
+      y - radius * 0.32,
+      1,
+      x,
+      y,
+      radius
+    );
+    body.addColorStop(0, '#fff9b0');
+    body.addColorStop(0.5, '#ffbd4c');
+    body.addColorStop(1, '#e86e23');
+    ctx.fillStyle = body;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
+  if (hasTexture) return;
   ctx.strokeStyle = 'rgba(255, 245, 180, 0.36)';
   ctx.lineWidth = Math.max(1, radius * 0.035);
   for (let index = 0; index < 5; index += 1) {
@@ -457,8 +490,10 @@ function drawEarthBody(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
-  radius: number
+  radius: number,
+  skinType: SkinType
 ): void {
+  if (drawSkinnedBody(ctx, 'earth', skinType, x, y, radius)) return;
   const body = ctx.createRadialGradient(
     x - radius * 0.35,
     y - radius * 0.35,

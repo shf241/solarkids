@@ -31,11 +31,11 @@ export function bindCanvasControlEvents(
   };
   const onResetView: EventListener = () => runtime.camera.reset();
   const onShowEclipse: EventListener = () =>
-    switchIfRegistered(runtime, 'eclipse');
+    toggleIfRegistered(runtime, 'eclipse');
   const onShowComet: EventListener = () =>
-    switchIfRegistered(runtime, 'comet');
+    toggleIfRegistered(runtime, 'comet');
   const onShowMagnetic: EventListener = () =>
-    switchIfRegistered(runtime, 'magnetic');
+    toggleIfRegistered(runtime, 'magnetic');
   const onSkinChange: EventListener = event => {
     runtime.events.emit(
       'skinChange',
@@ -65,8 +65,10 @@ export function bindCanvasControlEvents(
   };
 }
 
-function switchIfRegistered(runtime: CanvasRuntime, sceneId: string): void {
+function toggleIfRegistered(runtime: CanvasRuntime, sceneId: string): void {
   if (runtime.scenes.has(sceneId)) {
-    runtime.scenes.switchTo(sceneId);
+    runtime.scenes.switchTo(
+      runtime.scenes.activeSceneId === sceneId ? null : sceneId
+    );
   }
 }
