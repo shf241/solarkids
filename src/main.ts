@@ -7,6 +7,7 @@ import {
   showToast,
   getDeviceType,
   onDeviceChange,
+  setPanelSkinType,
   updatePanel,
   bindControls,
   type PlanetInfo,
@@ -15,19 +16,19 @@ import {
   loadSkinsConfig,
   preloadAllAssets,
   type SkinsData,
-  type SkinType,
+  type RenderSkinType,
 } from './ui/assetLoader.js';
 import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
-import {
-  initSolarSystemPreview,
-  setSkinType,
-  type SolarSystemPreviewController,
-} from './ui/solarSystemPreview.js';
+import { setSkinType } from './ui/solarSystemPreview.js';
 import {
   bindCanvasControlEvents,
+  CanvasInteractionController,
   createCanvasRuntime,
   type CanvasRuntime,
+  type CanvasViewState,
 } from './canvas/index.js';
+import { createCometScene } from './canvas/cometScene.js';
+import { createSolarSystemScene } from './canvas/solarSystemScene.js';
 import { registerMember1Scenes } from './canvas/scenes/registerMember1Scenes.js';
 import { registerMember4Scenes } from './canvas/scenes/registerMember4Scenes.js';
 import {
@@ -38,15 +39,35 @@ import {
 // ---- 全局状态 ----
 
 let skinsConfig: SkinsData | null = null;
-let currentSkinType: SkinType = 'svg';
+let currentSkinType: RenderSkinType = 'cartoon';
 let currentPanelInfo: PlanetInfo | null = null;
 let member4: Member4Integration | null = null;
 let canvasRuntime: CanvasRuntime | null = null;
+let canvasInteractions: CanvasInteractionController | null = null;
 let unbindCanvasControls: (() => void) | null = null;
-let previewController: SolarSystemPreviewController | null = null;
+let unbindAnimationStatus: (() => void) | null = null;
 let unregisterMember1Scenes: (() => void) | null = null;
 let unregisterMember4Scenes: (() => void) | null = null;
 let unbindSceneSync: (() => void) | null = null;
+
+type ExperienceId =
+  | 'overview'
+  | 'earth-first-person'
+  | 'eclipse'
+  | 'comet'
+  | 'magnetic'
+  | 'solar-rain'
+  | 'orbit-game';
+
+const EXPERIENCE_BUTTONS: ReadonlyArray<readonly [string, ExperienceId]> = [
+  ['btn-view-overview', 'overview'],
+  ['btn-view-earth', 'earth-first-person'],
+  ['btn-eclipse', 'eclipse'],
+  ['btn-comet', 'comet'],
+  ['btn-magnetic', 'magnetic'],
+  ['btn-solar-rain', 'solar-rain'],
+  ['btn-orbit-game', 'orbit-game'],
+];
 
 // ---- 应用启动 ----
 
@@ -79,6 +100,7 @@ async function init(): Promise<void> {
     const activeSkinType = skinsConfig.skins[skinsConfig.activeSkin].type;
     currentSkinType = activeSkinType;
     setSkinType(activeSkinType);
+    setPanelSkinType(activeSkinType);
     console.log(`🖼️ 渲染器皮肤: ${activeSkinType}`);
   } catch (e) {
     console.warn('⚠️ 皮肤配置加载失败，使用默认配置', e);
@@ -110,13 +132,13 @@ function bindControlBar(): void {
   bindControls({
     'btn-play': el => {
       const btn = el as HTMLButtonElement;
-      const isPaused = btn.getAttribute('aria-pressed') !== 'true';
-      btn.setAttribute('aria-pressed', String(isPaused));
-      const icon = btn.querySelector<HTMLImageElement>('.control-icon');
-      if (icon) {
-        icon.src = isPaused ? 'assets/svg/icon-pause.svg' : 'assets/svg/icon-play.svg';
-      }
-      showToast(isPaused ? `▶️ ${translate('toast.play')}` : `⏸️ ${translate('toast.pause')}`);
+      const isPlaying = btn.getAttribute('aria-pressed') !== 'true';
+      setPlayButtonState(isPlaying);
+      showToast(
+        isPlaying
+          ? `▶️ ${translate('toast.play')}`
+          : `⏸️ ${translate('toast.pause')}`
+      );
       document.dispatchEvent(new CustomEvent('solarkids:togglePlay'));
     },
 
@@ -151,28 +173,76 @@ function bindControlBar(): void {
       showToast(`🏠 ${translate('toast.resetView')}`);
     },
 
+    'btn-view-overview': () => {
+      document.dispatchEvent(new CustomEvent('solarkids:showOverview'));
+      canvasInteractions?.showOverview();
+      setActiveExperience('overview');
+      showToast(`🌌 ${translate('toast.overview')}`);
+    },
+
+    'btn-view-earth': () => {
+      document.dispatchEvent(new CustomEvent('solarkids:showOverview'));
+      const switched = canvasInteractions?.showEarthFirstPerson() ?? false;
+      if (
+        switched &&
+        canvasRuntime &&
+        (canvasRuntime.animation.status === 'idle' ||
+          canvasRuntime.animation.status === 'stopped')
+      ) {
+        canvasRuntime.animation.start();
+        setPlayButtonState(true);
+      }
+      if (switched) setActiveExperience('earth-first-person');
+      showToast(
+        switched
+          ? `🌍 ${translate('toast.earthView')}`
+          : translate('toast.earthViewUnavailable')
+      );
+    },
+
+    'btn-toggle-orbits': el => {
+      const button = el as HTMLButtonElement;
+      const visible = button.getAttribute('aria-pressed') !== 'true';
+      button.setAttribute('aria-pressed', String(visible));
+      document.dispatchEvent(
+        new CustomEvent('solarkids:toggleOrbits', {
+          detail: { visible },
+        })
+      );
+      showToast(
+        visible
+          ? `🪐 ${translate('toast.orbitsShown')}`
+          : `🪐 ${translate('toast.orbitsHidden')}`
+      );
+    },
+
     'btn-eclipse': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showEclipse'));
+      setActiveExperience('eclipse');
       showToast(`🌑 ${translate('nav.eclipse')}`);
     },
 
     'btn-comet': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showComet'));
+      setActiveExperience('comet');
       showToast(`☄️ ${translate('nav.comet')}`);
     },
 
     'btn-magnetic': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showMagnetic'));
+      setActiveExperience('magnetic');
       showToast(`🧲 ${translate('nav.magnetic')}`);
     },
 
-    'btn-solar-wind': () => {
-      document.dispatchEvent(new CustomEvent('solarkids:showSolarWind'));
-      showToast(`☀️ ${translate('nav.solarWind')}`);
+    'btn-solar-rain': () => {
+      document.dispatchEvent(new CustomEvent('solarkids:showSolarRain'));
+      setActiveExperience('solar-rain');
+      showToast(`🌧️ ${translate('nav.solarRain')}`);
     },
 
     'btn-orbit-game': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showOrbitGame'));
+      setActiveExperience('orbit-game');
       showToast(`🎯 ${translate('nav.game')}`);
     },
 
@@ -188,6 +258,8 @@ function bindControlBar(): void {
           await preloadAllAssets(skinsConfig!);
           currentSkinType = skinConfig.type;
           setSkinType(currentSkinType);
+          setPanelSkinType(currentSkinType);
+          console.log(`🖼️ 渲染器皮肤: ${currentSkinType}`);
 
           // 通知 Canvas 重绘
           document.dispatchEvent(
@@ -204,6 +276,7 @@ function bindControlBar(): void {
       member4?.toggleLanguage();
       member4?.applyDocumentLanguage();
       renderPanel(currentPanelInfo);
+      applyCanvasLanguage();
       canvasRuntime?.renderOnce();
       showToast(`🌐 ${translate('toast.languageChanged')}`);
     },
@@ -217,6 +290,18 @@ function bindControlBar(): void {
   const slider = document.getElementById('speed-slider');
   if (slider) {
     slider.addEventListener('input', updateSpeed);
+  }
+}
+
+function setPlayButtonState(isPlaying: boolean): void {
+  const button = document.getElementById('btn-play') as HTMLButtonElement | null;
+  if (!button) return;
+  button.setAttribute('aria-pressed', String(isPlaying));
+  const icon = button.querySelector<HTMLImageElement>('.control-icon');
+  if (icon) {
+    icon.src = isPlaying
+      ? 'assets/svg/icon-pause.svg'
+      : 'assets/svg/icon-play.svg';
   }
 }
 
@@ -239,8 +324,12 @@ function showHelpModal(): void {
       `
       <div style="line-height:2;">
         <p>🖱️ ${translate('help.drag')}</p>
+        <p>⇧ ${translate('help.pan')}</p>
         <p>🔍 ${translate('help.zoom')}</p>
+        <p>🤏 ${translate('help.gesture')}</p>
         <p>👆 ${translate('help.planet')}</p>
+        <p>🌌 ${translate('help.view')}</p>
+        <p>⌨️ ${translate('help.keyboard')}</p>
         <p>▶️ ${translate('help.play')}</p>
         <p>🎨 ${translate('help.skin')}</p>
         <p>🌐 ${translate('help.language')}</p>
@@ -257,17 +346,6 @@ function initCanvas(): void {
   const container = document.getElementById('canvas-container');
   if (!canvas || !container) return;
 
-  // 静态预览暂时保留；模块1完成后迁移为正式 CanvasScene。
-  previewController = initSolarSystemPreview(canvas, container, {
-    updatePanel: renderPanel,
-    showToast,
-    translate,
-    onPlanetSelected: info => {
-      if (info.id) member4?.store.markPlanetVisited(info.id);
-      showToast(`${translate('toast.planetFound')} ${member4?.localizeInfo(info)?.nameCN ?? info.nameCN}`);
-    },
-  });
-
   canvasRuntime = createCanvasRuntime({
     canvas,
     container,
@@ -282,47 +360,73 @@ function initCanvas(): void {
     },
   });
 
-  // 新运行时当前没有激活场景，因此不会覆盖现有静态预览。
+  // 注册成员1专题与成员3场景；所有动画由公共运行时统一调度。
   unregisterMember1Scenes?.();
   unregisterMember1Scenes = registerMember1Scenes(canvasRuntime, {
-    getSkinType: () => currentSkinType,
+    getSkinType: getTopicSkinType,
     translate,
   });
   unregisterMember4Scenes?.();
   unregisterMember4Scenes = registerMember4Scenes(canvasRuntime, {
-    getSkinType: () => currentSkinType,
+    getSkinType: getTopicSkinType,
     store: member4!.store,
     translate,
   });
 
   unbindCanvasControls?.();
   unbindCanvasControls = bindCanvasControlEvents(canvasRuntime);
+  unbindAnimationStatus?.();
+  unbindAnimationStatus = canvasRuntime.animation.onStateChange(status => {
+    setPlayButtonState(status === 'running');
+  });
+  canvasRuntime.scenes.register(
+    createSolarSystemScene({ updatePanel: renderPanel, showToast, translate })
+  );
+  canvasRuntime.scenes.register(
+    createCometScene({ updatePanel: renderPanel, showToast, translate })
+  );
+  canvasRuntime.scenes.switchTo('solar-system');
+  canvasInteractions?.dispose();
+  canvasInteractions = new CanvasInteractionController(canvasRuntime, {
+    onViewChange: updateViewControls,
+  });
+  applyCanvasLanguage();
 
   unbindSceneSync?.();
   unbindSceneSync = canvasRuntime.scenes.onChange(({ sceneId }) => {
-    previewController?.setActive(sceneId === null);
-    updateTopicButtonState(sceneId);
+    setViewStatusVisibility(sceneId === 'solar-system');
+    if (isExperienceId(sceneId)) {
+      setActiveExperience(sceneId);
+    }
     updateTopicPanel(sceneId);
   });
 
-  const returnToOverview = (): void => {
-    if (canvasRuntime?.scenes.hasActiveScene) {
-      canvasRuntime.scenes.switchTo(null);
-    }
-  };
   const redrawSceneAssets = (): void => {
     canvasRuntime?.renderOnce();
   };
-  document.addEventListener('solarkids:resetView', returnToOverview);
+  const recordSelectedBody: EventListener = event => {
+    const bodyId = (
+      event as CustomEvent<{ bodyId?: string }>
+    ).detail?.bodyId;
+    if (bodyId) member4?.store.markPlanetVisited(bodyId);
+  };
   document.addEventListener('solarkids:sceneAssetReady', redrawSceneAssets);
+  document.addEventListener('solarkids:bodySelected', recordSelectedBody);
 
   window.addEventListener(
     'beforeunload',
     () => {
-      document.removeEventListener('solarkids:resetView', returnToOverview);
+      canvasInteractions?.dispose();
+      canvasInteractions = null;
+      unbindAnimationStatus?.();
+      unbindAnimationStatus = null;
       document.removeEventListener(
         'solarkids:sceneAssetReady',
         redrawSceneAssets
+      );
+      document.removeEventListener(
+        'solarkids:bodySelected',
+        recordSelectedBody
       );
       unbindSceneSync?.();
       unbindSceneSync = null;
@@ -334,25 +438,57 @@ function initCanvas(): void {
       unregisterMember4Scenes = null;
       canvasRuntime?.dispose();
       canvasRuntime = null;
-      previewController = null;
     },
     { once: true }
   );
 }
 
-function updateTopicButtonState(sceneId: string | null): void {
-  const sceneButtons: Record<string, string> = {
-    eclipse: 'btn-eclipse',
-    comet: 'btn-comet',
-    magnetic: 'btn-magnetic',
-    'solar-wind': 'btn-solar-wind',
-    'orbit-game': 'btn-orbit-game',
+function updateViewControls(view: Readonly<CanvasViewState>): void {
+  const labels: Record<string, string> = {
+    overview: translate('view.overview'),
+    focus: `${translate('view.focus')} · ${getBodyLabel(view.focusTargetId)}`,
+    'earth-first-person': translate('view.earthFirstPerson'),
   };
-  for (const [targetSceneId, buttonId] of Object.entries(sceneButtons)) {
-    document
-      .getElementById(buttonId)
-      ?.setAttribute('aria-pressed', String(sceneId === targetSceneId));
+  const status = document.getElementById('canvas-view-status');
+  if (status) {
+    status.textContent = `${translate('view.label')}：${labels[view.mode]}`;
   }
+
+  const sceneId = canvasRuntime?.scenes.activeSceneId;
+  if (sceneId === 'solar-system') {
+    setActiveExperience(
+      view.mode === 'earth-first-person' ? 'earth-first-person' : 'overview'
+    );
+  } else if (isExperienceId(sceneId)) {
+    setActiveExperience(sceneId);
+  }
+}
+
+function setActiveExperience(activeId: ExperienceId): void {
+  for (const [buttonId, experienceId] of EXPERIENCE_BUTTONS) {
+    const button = document.getElementById(buttonId);
+    button?.setAttribute(
+      'aria-pressed',
+      String(experienceId === activeId)
+    );
+  }
+}
+
+function isExperienceId(value: string | null | undefined): value is ExperienceId {
+  return EXPERIENCE_BUTTONS.some(([, experienceId]) => experienceId === value);
+}
+
+function getBodyLabel(bodyId: string | null): string {
+  if (!bodyId) return translate('body.celestial');
+  if (bodyId === 'comet') return translate('body.comet');
+  const key = `planet.${bodyId}.name`;
+  const translated = translate(key);
+  return translated === key ? bodyId : translated;
+}
+
+function setViewStatusVisibility(visible: boolean): void {
+  const status = document.getElementById('canvas-view-status');
+  if (status) status.hidden = !visible;
 }
 
 function updateTopicPanel(sceneId: string | null): void {
@@ -380,9 +516,9 @@ function updateTopicPanel(sceneId: string | null): void {
         { label: '快捷键', value: '1 / 2 / 3' },
       ],
     });
-  } else if (sceneId === 'solar-wind') {
+  } else if (sceneId === 'solar-rain') {
     renderPanel({
-      id: 'scene.solar-wind',
+      id: 'scene.solar-rain',
       name: 'Solar Wind Lab',
       nameCN: '太阳风实验室',
       emoji: '☀️',
@@ -414,6 +550,16 @@ function renderPanel(info: PlanetInfo | null): void {
 
 function translate(key: string): string {
   return member4?.translate(key) ?? key;
+}
+
+function getTopicSkinType(): 'svg' | 'png' {
+  return currentSkinType === 'realistic' ? 'png' : 'svg';
+}
+
+function applyCanvasLanguage(): void {
+  const canvas = document.getElementById('main-canvas');
+  canvas?.setAttribute('aria-label', translate('canvas.ariaLabel'));
+  if (canvasInteractions) updateViewControls(canvasInteractions.view);
 }
 
 // ---- 启动 ----

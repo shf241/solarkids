@@ -112,6 +112,7 @@ body {
   line-height: 1.6;
   overflow: hidden;           /* 单页应用，禁止整页滚动 */
   width: 100vw;
+  height: 100vh;
   height: 100dvh;             /* 动态视口高度，适配移动端地址栏 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -156,6 +157,7 @@ canvas, svg, button {
     "canvas panel"
     "control control";
   width: 100%;
+  height: 100vh;
   height: 100dvh;
 }
 
@@ -165,6 +167,7 @@ canvas, svg, button {
   position: relative;
   overflow: hidden;
   cursor: grab;
+  overscroll-behavior: contain;
 }
 
 #canvas-container:active {
@@ -175,6 +178,41 @@ canvas, svg, button {
   display: block;
   width: 100%;
   height: 100%;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+}
+
+#canvas-container canvas.is-dragging {
+  cursor: grabbing !important;
+}
+
+#canvas-container canvas.is-rotating {
+  cursor: ew-resize !important;
+}
+
+#canvas-container canvas.is-looking {
+  cursor: move !important;
+}
+
+#canvas-container canvas:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--color-sun-yellow);
+}
+
+.canvas-view-status {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  z-index: var(--z-overlay);
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(91, 192, 235, 0.36);
+  border-radius: var(--radius-full);
+  background: rgba(6, 11, 31, 0.76);
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
 }
 
 /* -- 侧边信息面板 -- */
@@ -198,6 +236,7 @@ canvas, svg, button {
   background: var(--color-space-mid);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   min-height: 56px;
+  padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
   z-index: var(--z-panel);
 }
 
@@ -360,6 +399,34 @@ canvas, svg, button {
   color: var(--color-sun-yellow);
 }
 
+.planet-info__title {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: 0;
+}
+
+.planet-info__title-icon {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 1em;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+}
+
+.planet-info__title-emoji {
+  width: 1em;
+  flex: 0 0 1em;
+  text-align: center;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.planet-info__title-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 #side-panel h3 {
   font-size: var(--font-base);
   font-weight: 600;
@@ -395,6 +462,56 @@ canvas, svg, button {
   font-size: var(--font-md);
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.planet-info__section {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.planet-info__section h3 {
+  color: var(--color-accent);
+}
+
+.planet-info__actions {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  position: sticky;
+  bottom: 0;
+  padding: var(--space-sm) 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(13, 21, 54, 0),
+    var(--color-space-mid) 28%
+  );
+}
+
+.planet-info__action {
+  min-height: 46px;
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #f08c2a, #f7c948);
+  color: #071025;
+  font-size: var(--font-sm);
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(240, 140, 42, 0.22);
+  transition:
+    transform var(--transition-fast),
+    filter var(--transition-fast);
+}
+
+.planet-info__action:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.planet-info__action--secondary {
+  border: 1px solid rgba(91, 192, 235, 0.45);
+  background: rgba(91, 192, 235, 0.1);
+  color: var(--color-accent);
+  box-shadow: none;
 }
 
 /* --------------------------------------------
@@ -495,6 +612,7 @@ input[type="range"]::-webkit-slider-thumb {
     flex-wrap: wrap;
     gap: var(--space-xs);
     padding: var(--space-xs) var(--space-sm);
+    padding-bottom: max(var(--space-xs), env(safe-area-inset-bottom));
     min-height: 50px;
   }
 
@@ -530,7 +648,9 @@ input[type="range"]::-webkit-slider-thumb {
     justify-content: center;
     flex-wrap: wrap;
     gap: 4px;
-    padding: 4px 8px;
+    padding: 4px max(8px, env(safe-area-inset-right))
+      max(4px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
     min-height: 48px;
     overflow-x: hidden;
   }
@@ -540,14 +660,31 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0 2px;
   }
 
-  .control-group:nth-child(3),
-  .control-group:last-child {
+  .control-group--experiences {
+    flex-basis: 100%;
     order: 1;
+    justify-content: center;
+    padding-inline: 0;
   }
 
   .control-group:first-child,
-  .control-group:nth-child(2) {
+  .control-group:last-child {
     order: 2;
+  }
+
+  .control-group:nth-child(2) {
+    order: 3;
+  }
+
+  .control-group--experiences .btn {
+    padding-inline: 0;
+  }
+
+  .canvas-view-status {
+    max-width: calc(100% - 20px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* 手机端按钮自适应 */
@@ -593,8 +730,20 @@ input[type="range"]::-webkit-slider-thumb {
     border-radius: var(--radius-lg);
   }
 
+  .toast {
+    bottom: calc(149px + env(safe-area-inset-bottom));
+    max-width: calc(100% - 24px);
+    text-align: center;
+  }
+
   /* 隐藏次要文字 */
   .control-group__label {
+    display: none;
+  }
+}
+
+@media (max-width: 359px) {
+  #speed-slider {
     display: none;
   }
 }

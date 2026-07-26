@@ -29,17 +29,22 @@ export function bindCanvasControlEvents(
       (event as CustomEvent<{ delta?: number }>).detail?.delta ?? 1;
     runtime.camera.zoomBy(factor);
   };
-  const onResetView: EventListener = () => runtime.camera.reset();
+  const onResetView: EventListener = () => {
+    runtime.camera.reset();
+    runtime.scenes.reset();
+  };
+  const onShowOverview: EventListener = () =>
+    switchIfRegistered(runtime, 'solar-system');
   const onShowEclipse: EventListener = () =>
-    toggleIfRegistered(runtime, 'eclipse');
+    switchIfRegistered(runtime, 'eclipse');
   const onShowComet: EventListener = () =>
-    toggleIfRegistered(runtime, 'comet');
+    switchIfRegistered(runtime, 'comet');
   const onShowMagnetic: EventListener = () =>
-    toggleIfRegistered(runtime, 'magnetic');
-  const onShowSolarWind: EventListener = () =>
-    toggleIfRegistered(runtime, 'solar-wind');
+    switchIfRegistered(runtime, 'magnetic');
+  const onShowSolarRain: EventListener = () =>
+    switchIfRegistered(runtime, 'solar-rain');
   const onShowOrbitGame: EventListener = () =>
-    toggleIfRegistered(runtime, 'orbit-game');
+    switchIfRegistered(runtime, 'orbit-game');
   const onSkinChange: EventListener = event => {
     runtime.events.emit(
       'skinChange',
@@ -52,10 +57,11 @@ export function bindCanvasControlEvents(
     ['solarkids:speedChange', onSpeedChange],
     ['solarkids:zoom', onZoom],
     ['solarkids:resetView', onResetView],
+    ['solarkids:showOverview', onShowOverview],
     ['solarkids:showEclipse', onShowEclipse],
     ['solarkids:showComet', onShowComet],
     ['solarkids:showMagnetic', onShowMagnetic],
-    ['solarkids:showSolarWind', onShowSolarWind],
+    ['solarkids:showSolarRain', onShowSolarRain],
     ['solarkids:showOrbitGame', onShowOrbitGame],
     ['solarkids:skinChange', onSkinChange],
   ];
@@ -71,10 +77,8 @@ export function bindCanvasControlEvents(
   };
 }
 
-function toggleIfRegistered(runtime: CanvasRuntime, sceneId: string): void {
+function switchIfRegistered(runtime: CanvasRuntime, sceneId: string): void {
   if (runtime.scenes.has(sceneId)) {
-    runtime.scenes.switchTo(
-      runtime.scenes.activeSceneId === sceneId ? null : sceneId
-    );
+    runtime.scenes.switchTo(sceneId);
   }
 }

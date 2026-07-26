@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   GAME_COORDINATE_SPAN,
+  SOLAR_RAIN_SCENE_ID,
   normalizeOrbitDrag,
   advanceSolarWindParticle,
   createSolarWindParticles,
@@ -9,6 +10,10 @@ import {
 import { calculateChangeLevel } from '../src/game/index.ts';
 
 describe('member 4 Canvas scene logic', () => {
+  it('M4-C-00 follows the shared solar-rain entry protocol', () => {
+    expect(SOLAR_RAIN_SCENE_ID).toBe('solar-rain');
+  });
+
   it('M4-C-01 creates deterministic solar-wind particles', () => {
     const first = createSolarWindParticles(12);
     const second = createSolarWindParticles(12);

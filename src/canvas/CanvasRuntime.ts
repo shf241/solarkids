@@ -46,6 +46,14 @@ export class CanvasRuntime {
   private resizeObserver: ResizeObserver | null = null;
   private disposed = false;
 
+  get canvasElement(): HTMLCanvasElement {
+    return this.canvas;
+  }
+
+  get containerElement(): HTMLElement {
+    return this.container;
+  }
+
   constructor(options: CanvasRuntimeOptions) {
     this.canvas = options.canvas;
     this.container = options.container;

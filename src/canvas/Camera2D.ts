@@ -17,6 +17,8 @@ const DEFAULT_STATE: CameraState = {
   position: { x: 0, y: 0 },
   zoom: 1,
   rotation: 0,
+  observerYaw: 0,
+  observerPitch: 0,
   mode: 'overview',
   focusTargetId: null,
 };
@@ -53,6 +55,12 @@ export class Camera2D {
   setState(next: Partial<CameraState>): void {
     const merged = mergeCameraState(this.stateValue, next);
     merged.zoom = clamp(merged.zoom, this.minZoom, this.maxZoom);
+    merged.observerYaw = normalizeAngle(merged.observerYaw);
+    merged.observerPitch = clamp(
+      merged.observerPitch,
+      -Math.PI / 3,
+      Math.PI / 3
+    );
     this.stateValue = merged;
     this.emitChange();
   }
@@ -101,6 +109,20 @@ export class Camera2D {
   rotateBy(radians: number): void {
     if (!Number.isFinite(radians)) return;
     this.setState({ rotation: this.stateValue.rotation + radians });
+  }
+
+  lookBy(yawRadians: number, pitchRadians: number): void {
+    if (!Number.isFinite(yawRadians) || !Number.isFinite(pitchRadians)) return;
+    this.setState({
+      observerYaw: normalizeAngle(
+        this.stateValue.observerYaw + yawRadians
+      ),
+      observerPitch: clamp(
+        this.stateValue.observerPitch + pitchRadians,
+        -Math.PI / 3,
+        Math.PI / 3
+      ),
+    });
   }
 
   reset(): void {
@@ -176,6 +198,8 @@ function mergeCameraState(
     },
     zoom: next?.zoom ?? base.zoom,
     rotation: next?.rotation ?? base.rotation,
+    observerYaw: next?.observerYaw ?? base.observerYaw,
+    observerPitch: next?.observerPitch ?? base.observerPitch,
     mode: next?.mode ?? base.mode,
     focusTargetId:
       next?.focusTargetId === undefined
@@ -193,4 +217,9 @@ function cloneCameraState(state: CameraState): CameraState {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeAngle(radians: number): number {
+  const fullTurn = Math.PI * 2;
+  return ((radians + Math.PI) % fullTurn + fullTurn) % fullTurn - Math.PI;
 }

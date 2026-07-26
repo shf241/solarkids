@@ -19,6 +19,7 @@ import {
 import {
   advanceSolarWindParticle,
   createSolarWindParticles,
+  SOLAR_RAIN_SCENE_ID,
   type SolarWindParticle,
 } from './member4SceneLogic.js';
 
@@ -73,7 +74,7 @@ export function createSolarWindScene(
   };
 
   return {
-    id: 'solar-wind',
+    id: SOLAR_RAIN_SCENE_ID,
 
     enter(context) {
       runtimeContext = context;
@@ -114,7 +115,7 @@ export function createSolarWindScene(
       drawSceneHeader(
         context.context2D,
         width,
-        options.translate('scene.solar-wind.title'),
+        options.translate('scene.solar-rain.title'),
         options.translate('solarWind.subtitle'),
         ACCENT,
       );

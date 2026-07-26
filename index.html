@@ -2,10 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SolarKids — 天体运行少儿教学</title>
   <link rel="icon" href="assets/svg/sun.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="src/style.css">
+  <link rel="stylesheet" href="src/style.css?v=20260727-solar-rain-integration-1">
 </head>
 <body>
 
@@ -16,17 +16,29 @@
 
     <!-- Canvas 画布区（成员3负责） -->
     <div id="canvas-container">
-      <canvas id="main-canvas"></canvas>
+      <canvas id="main-canvas" tabindex="0"></canvas>
+      <div id="canvas-view-status" class="canvas-view-status" aria-live="polite">
+        视角：太阳系总览
+      </div>
     </div>
 
     <!-- 侧边信息面板（成员1+2+3共用） -->
     <aside id="side-panel">
-      <h2 id="planet-name" data-i18n="panel.select">🌍 选择一颗行星</h2>
+      <h2 id="planet-name" class="planet-info__title">
+        <img
+          class="planet-info__title-icon"
+          src="assets/svg/earth.svg"
+          alt=""
+        >
+        <span class="planet-info__title-text" data-i18n="panel.select">选择一颗行星</span>
+      </h2>
       <p id="planet-desc" data-i18n="panel.selectHint">点击画布中的天体，查看详细信息</p>
       <hr class="divider">
       <div class="planet-info__stats" id="planet-stats">
         <!-- JS 动态填充 -->
       </div>
+      <div id="planet-sections"></div>
+      <div class="planet-info__actions" id="planet-actions"></div>
     </aside>
 
     <!-- 底部控制栏 -->
@@ -52,15 +64,111 @@
         <button class="btn btn--icon" id="btn-reset-view" title="重置视角" aria-label="重置视角" data-i18n-title="action.resetView" data-i18n-aria-label="action.resetView">
           <img class="control-icon" src="assets/svg/icon-reset-view.svg" alt="">
         </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-toggle-orbits"
+          title="显示或隐藏轨道"
+          aria-label="显示或隐藏行星轨道"
+          aria-pressed="true"
+          data-i18n-title="nav.orbits"
+          data-i18n-aria-label="nav.orbits"
+        >
+          <span aria-hidden="true">🪐</span>
+          <span data-i18n="nav.orbits">轨道</span>
+        </button>
       </div>
 
-      <!-- 功能切换 -->
-      <div class="control-group">
-        <button class="btn btn--ghost" id="btn-eclipse" title="日食/月食模拟" aria-label="日食/月食模拟" data-i18n-title="nav.eclipse" data-i18n-aria-label="nav.eclipse"><span aria-hidden="true">🌑</span><span data-i18n="nav.eclipse">日食/月食</span></button>
-        <button class="btn btn--ghost" id="btn-comet" title="哈雷彗星" aria-label="哈雷彗星" data-i18n-title="nav.comet" data-i18n-aria-label="nav.comet"><span aria-hidden="true">☄️</span><span data-i18n="nav.comet">彗星</span></button>
-        <button class="btn btn--ghost" id="btn-magnetic" title="磁场演示" aria-label="磁场演示" data-i18n-title="nav.magnetic" data-i18n-aria-label="nav.magnetic"><span aria-hidden="true">🧲</span><span data-i18n="nav.magnetic">磁场</span></button>
-        <button class="btn btn--ghost" id="btn-solar-wind" title="太阳风演示" aria-label="太阳风演示" data-i18n-title="nav.solarWind" data-i18n-aria-label="nav.solarWind"><span aria-hidden="true">☀️</span><span data-i18n="nav.solarWind">太阳风</span></button>
-        <button class="btn btn--ghost" id="btn-orbit-game" title="轨道小游戏" aria-label="轨道小游戏" data-i18n-title="nav.game" data-i18n-aria-label="nav.game"><span aria-hidden="true">🎯</span><span data-i18n="nav.game">轨道小游戏</span></button>
+      <!-- 模块6：互斥视角与现象入口 -->
+      <div
+        class="control-group control-group--experiences"
+        role="group"
+        aria-label="视角与天文现象"
+        data-i18n-aria-label="nav.experiences"
+      >
+        <button
+          class="btn btn--ghost"
+          id="btn-view-overview"
+          title="太阳系总览视角（快捷键 0）"
+          aria-label="太阳系总览"
+          aria-pressed="true"
+          data-i18n-title="nav.overview"
+          data-i18n-aria-label="nav.overview"
+        >
+          <span aria-hidden="true">🌌</span>
+          <span data-i18n="nav.overview">太阳系总览</span>
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-view-earth"
+          title="站在地球表面观察天空（快捷键 E）"
+          aria-label="地表视角"
+          aria-pressed="false"
+          data-i18n-title="nav.earthView"
+          data-i18n-aria-label="nav.earthView"
+        >
+          <span aria-hidden="true">🌍</span>
+          <span data-i18n="nav.earthView">地表视角</span>
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-eclipse"
+          title="日食/月食模拟"
+          aria-label="日食/月食模拟"
+          aria-pressed="false"
+          data-i18n-title="nav.eclipse"
+          data-i18n-aria-label="nav.eclipse"
+        >
+          <span aria-hidden="true">🌑</span>
+          <span data-i18n="nav.eclipse">日食/月食</span>
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-comet"
+          title="哈雷彗星"
+          aria-label="哈雷彗星"
+          aria-pressed="false"
+          data-i18n-title="nav.comet"
+          data-i18n-aria-label="nav.comet"
+        >
+          <span aria-hidden="true">☄️</span>
+          <span data-i18n="nav.comet">彗星</span>
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-magnetic"
+          title="磁场演示"
+          aria-label="磁场演示"
+          aria-pressed="false"
+          data-i18n-title="nav.magnetic"
+          data-i18n-aria-label="nav.magnetic"
+        >
+          <span aria-hidden="true">🧲</span>
+          <span data-i18n="nav.magnetic">磁场</span>
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-solar-rain"
+          title="太阳雨"
+          aria-label="太阳雨"
+          aria-pressed="false"
+          data-i18n-title="nav.solarRain"
+          data-i18n-aria-label="nav.solarRain"
+        >
+          <span aria-hidden="true">🌧️</span>
+          <span data-i18n="nav.solarRain">太阳雨</span>
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-orbit-game"
+          title="轨道小游戏"
+          aria-label="轨道小游戏"
+          aria-pressed="false"
+          data-i18n-title="nav.game"
+          data-i18n-aria-label="nav.game"
+        >
+          <span aria-hidden="true">🎯</span>
+          <span data-i18n="nav.game">轨道小游戏</span>
+        </button>
       </div>
 
       <!-- 设置 -->
@@ -88,6 +196,6 @@
        脚本（模块化加载）
        注：开发阶段用 TypeScript 编译后的 bundle
        ============================================ -->
-  <script type="module" src="dist/main.js"></script>
+  <script type="module" src="dist/main.js?v=20260727-solar-rain-integration-1"></script>
 </body>
 </html>

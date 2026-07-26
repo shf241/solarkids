@@ -3,36 +3,34 @@
   "skins": {
     "cartoon": {
       "name": "🌈 卡通模式",
-      "type": "svg",
+      "type": "cartoon",
       "assets": {
-        "sun":     "assets/svg/sun.svg",
-        "mercury": "assets/svg/mercury.svg",
-        "venus":   "assets/svg/venus.svg",
-        "earth":   "assets/svg/earth.svg",
-        "moon":    "assets/svg/moon.svg",
-        "mars":    "assets/svg/mars.svg",
-        "jupiter": "assets/svg/jupiter.svg",
-        "saturn":  "assets/svg/saturn.svg",
-        "uranus":  "assets/svg/uranus.svg",
-        "neptune": "assets/svg/neptune.svg",
-        "pluto":   "assets/svg/pluto.svg"
+        "sun":     "assets/cartoon_skin/sun-cartoon.png",
+        "mercury": "assets/cartoon_skin/mercury-cartoon.png",
+        "venus":   "assets/cartoon_skin/venus-cartoon.png",
+        "earth":   "assets/cartoon_skin/earth-cartoon.png",
+        "moon":    "assets/cartoon_skin/moon-cartoon.png",
+        "mars":    "assets/cartoon_skin/mars-cartoon.png",
+        "jupiter": "assets/cartoon_skin/jupiter-cartoon.png",
+        "saturn":  "assets/cartoon_skin/saturn-cartoon.png",
+        "uranus":  "assets/cartoon_skin/uranus-cartoon.png",
+        "neptune": "assets/cartoon_skin/neptune-cartoon.png"
       }
     },
     "realistic": {
       "name": "🔭 写实模式",
-      "type": "png",
+      "type": "realistic",
       "assets": {
-        "sun":     "assets/images/sun.png",
-        "mercury": "assets/images/mercury.png",
-        "venus":   "assets/images/venus.png",
-        "earth":   "assets/images/earth.png",
-        "moon":    "assets/images/moon.png",
-        "mars":    "assets/images/mars.png",
-        "jupiter": "assets/images/jupiter.png",
-        "saturn":  "assets/images/saturn.png",
-        "uranus":  "assets/images/uranus.png",
-        "neptune": "assets/images/neptune.png",
-        "pluto":   "assets/images/pluto.png"
+        "sun":     "assets/skins/2k_sun.jpg",
+        "mercury": "assets/skins/2k_mercury.jpg",
+        "venus":   "assets/skins/2k_venus_surface.jpg",
+        "earth":   "assets/skins/2k_earth_daymap.jpg",
+        "moon":    "assets/skins/2k_moon.jpg",
+        "mars":    "assets/skins/2k_mars.jpg",
+        "jupiter": "assets/skins/2k_jupiter.jpg",
+        "saturn":  "assets/skins/2k_saturn.jpg",
+        "uranus":  "assets/skins/2k_uranus.jpg",
+        "neptune": "assets/skins/2k_neptune.jpg"
       }
     }
   },

@@ -1,6 +1,8 @@
 import type { Point } from '../../game/index.js';
 import type { CanvasViewport, Point2D } from '../types.js';
 
+export const SOLAR_RAIN_SCENE_ID = 'solar-rain';
+
 export interface SolarWindParticle {
   angle: number;
   progress: number;
