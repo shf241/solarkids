@@ -29,6 +29,12 @@ export interface Point2D {
   y: number;
 }
 
+export interface Point3D {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface CanvasViewport {
   /** CSS 像素宽度。 */
   width: number;
@@ -44,14 +50,25 @@ export interface CameraState {
   position: Point2D;
   zoom: number;
   rotation: number;
+  /** 地表观察模式下的水平环顾角。 */
+  observerYaw: number;
+  /** 地表观察模式下的上下观察角。 */
+  observerPitch: number;
   mode: CameraMode;
   focusTargetId: string | null;
 }
 
 export interface CelestialBodyState {
   id: string;
+  /** 物理/逻辑世界坐标，供专题模块计算使用。 */
   position: Point2D;
+  /** 黄道坐标系中的三维位置，供地球观察者和空间专题使用。 */
+  position3D?: Point3D;
   velocity?: Point2D;
+  /** 场景经过教学比例和投影后的绘制坐标，供相机聚焦使用。 */
+  displayPosition?: Point2D;
+  /** 与 displayPosition 同坐标系的速度，用于跟随视角方向。 */
+  displayVelocity?: Point2D;
   rotation: number;
   orbitAngle?: number;
   radius?: number;
