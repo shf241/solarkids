@@ -15,7 +15,7 @@ import {
   loadSkinsConfig,
   preloadAllAssets,
   type SkinsData,
-  type SkinType,
+  type RenderSkinType,
 } from './ui/assetLoader.js';
 import { showSkinPicker, injectSkinStyles } from './ui/skinPicker.js';
 import { setSkinType } from './ui/solarSystemPreview.js';
@@ -33,7 +33,7 @@ import { registerMember1Scenes } from './canvas/scenes/registerMember1Scenes.js'
 // ---- 全局状态 ----
 
 let skinsConfig: SkinsData | null = null;
-let currentSkinType: SkinType = 'cartoon';
+let currentSkinType: RenderSkinType = 'cartoon';
 let canvasRuntime: CanvasRuntime | null = null;
 let canvasInteractions: CanvasInteractionController | null = null;
 let unbindCanvasControls: (() => void) | null = null;

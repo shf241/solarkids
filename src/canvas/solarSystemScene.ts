@@ -1,5 +1,5 @@
 import type { PlanetInfo } from '../ui/index.js';
-import type { SkinType } from '../ui/assetLoader.js';
+import type { RenderSkinType } from '../ui/assetLoader.js';
 import {
   PLANETS,
   drawHint,
@@ -69,10 +69,10 @@ type SolarSystemSceneState = {
   stars: { x: number; y: number; r: number; alpha: number }[];
   viewport: { width: number; height: number; dpr: number };
   textureRenderers: Readonly<
-    Record<SkinType, ReadonlyMap<string, EquirectangularPlanetRenderer>>
+    Record<RenderSkinType, ReadonlyMap<string, EquirectangularPlanetRenderer>>
   >;
   saturnRingRenderers: Readonly<
-    Record<SkinType, SaturnRingRenderer>
+    Record<RenderSkinType, SaturnRingRenderer>
   >;
 };
 
@@ -229,7 +229,7 @@ export function createSolarSystemScene(
     cartoon: createTextureRenderers(CARTOON_TEXTURES),
     realistic: createTextureRenderers(REALISTIC_TEXTURES),
   } satisfies Record<
-    SkinType,
+    RenderSkinType,
     ReadonlyMap<string, EquirectangularPlanetRenderer>
   >;
   const saturnRingRenderers = {
@@ -242,7 +242,7 @@ export function createSolarSystemScene(
       textureSrc: 'assets/skins/2k_saturn_ring_alpha.png',
       radialAxis: 'horizontal',
     }),
-  } satisfies Record<SkinType, SaturnRingRenderer>;
+  } satisfies Record<RenderSkinType, SaturnRingRenderer>;
   const state: SolarSystemSceneState = {
     angles: new Map(PLANETS.map(planet => [planet.id, planet.angle])),
     elapsedMs: 0,

@@ -1,7 +1,7 @@
 import type { PlanetInfo } from './index.js';
-import { getCachedImage, type SkinType } from './assetLoader.js';
+import { getCachedImage, type RenderSkinType } from './assetLoader.js';
 
-let skinType: SkinType = 'cartoon'; // 当前皮肤类型
+let skinType: RenderSkinType = 'cartoon'; // 当前皮肤类型
 
 // 哈雷彗星专属素材
 const halleyImg = new Image();
@@ -21,11 +21,11 @@ export type SpaceViewOptions = {
 };
 
 /** 外部设置初始皮肤类型 */
-export function setSkinType(type: SkinType): void {
+export function setSkinType(type: RenderSkinType): void {
   skinType = type;
 }
 
-export function getSkinType(): SkinType {
+export function getSkinType(): RenderSkinType {
   return skinType;
 }
 
@@ -345,7 +345,10 @@ export function initSolarSystemPreview(
   // 监听换肤事件
   document.addEventListener('solarkids:skinChange', (event) => {
     if (!active) return;
-    const detail = (event as CustomEvent<{ skinId: string; skinConfig: { type: SkinType } }>).detail;
+    const detail = (event as CustomEvent<{
+      skinId: string;
+      skinConfig: { type: RenderSkinType };
+    }>).detail;
     if (detail?.skinConfig?.type) {
       skinType = detail.skinConfig.type;
       draw();
