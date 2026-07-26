@@ -9,8 +9,8 @@ import {
   resetGame,
   saveOrbitGameResult,
   STABLE_DISTANCE_MAX,
-} from "../src/game";
-import { UserStateStore } from "../src/storage";
+} from "../src/game/index.ts";
+import { UserStateStore } from "../src/storage/index.ts";
 import { MemoryStorage } from "./helpers/memory-storage";
 
 describe("orbit game teaching model", () => {

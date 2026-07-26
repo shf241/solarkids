@@ -8,10 +8,10 @@ export {
   resetGame,
   saveOrbitGameResult,
   STABLE_DISTANCE_MAX,
-} from "./orbit-game";
+} from "./orbit-game.js";
 export type {
   GameResult,
   OrbitChangeLevel,
   OrbitGameState,
   Point,
-} from "./types";
+} from "./types.js";

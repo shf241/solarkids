@@ -1,13 +1,13 @@
 import {
   UserStateStore,
   type SolarKidsUserState,
-} from "../storage";
+} from "../storage/index.js";
 import type {
   GameResult,
   OrbitChangeLevel,
   OrbitGameState,
   Point,
-} from "./types";
+} from "./types.js";
 
 export const STABLE_DISTANCE_MAX = 5;
 export const LARGE_CHANGE_DISTANCE_MIN = 60;

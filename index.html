@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SolarKids — 天体运行少儿教学</title>
+  <link rel="icon" href="assets/svg/sun.svg" type="image/svg+xml">
   <link rel="stylesheet" href="src/style.css">
 </head>
 <body>
@@ -20,8 +21,8 @@
 
     <!-- 侧边信息面板（成员1+2+3共用） -->
     <aside id="side-panel">
-      <h2 id="planet-name">🌍 选择一颗行星</h2>
-      <p id="planet-desc">点击画布中的天体，查看详细信息</p>
+      <h2 id="planet-name" data-i18n="panel.select">🌍 选择一颗行星</h2>
+      <p id="planet-desc" data-i18n="panel.selectHint">点击画布中的天体，查看详细信息</p>
       <hr class="divider">
       <div class="planet-info__stats" id="planet-stats">
         <!-- JS 动态填充 -->
@@ -32,43 +33,45 @@
     <nav id="control-bar">
       <!-- 播放控制 -->
       <div class="control-group">
-        <button class="btn btn--icon" id="btn-play" title="播放/暂停" aria-label="播放或暂停">
+        <button class="btn btn--icon" id="btn-play" title="播放/暂停" aria-label="播放或暂停" data-i18n-title="action.playPause" data-i18n-aria-label="action.playPause">
           <img class="control-icon" src="assets/svg/icon-play.svg" alt="">
         </button>
-        <button class="btn btn--icon" id="btn-speed-down" title="减速">⏪</button>
+        <button class="btn btn--icon" id="btn-speed-down" title="减速" aria-label="减速" data-i18n-title="action.speedDown" data-i18n-aria-label="action.speedDown">⏪</button>
         <input type="range" id="speed-slider" min="1" max="10" value="5" title="速度">
-        <button class="btn btn--icon" id="btn-speed-up" title="加速">⏩</button>
+        <button class="btn btn--icon" id="btn-speed-up" title="加速" aria-label="加速" data-i18n-title="action.speedUp" data-i18n-aria-label="action.speedUp">⏩</button>
       </div>
 
       <!-- 视角控制 -->
       <div class="control-group">
-        <button class="btn btn--icon" id="btn-zoom-in" title="放大" aria-label="放大">
+        <button class="btn btn--icon" id="btn-zoom-in" title="放大" aria-label="放大" data-i18n-title="action.zoomIn" data-i18n-aria-label="action.zoomIn">
           <img class="control-icon" src="assets/svg/icon-zoom-in.svg" alt="">
         </button>
-        <button class="btn btn--icon" id="btn-zoom-out" title="缩小" aria-label="缩小">
+        <button class="btn btn--icon" id="btn-zoom-out" title="缩小" aria-label="缩小" data-i18n-title="action.zoomOut" data-i18n-aria-label="action.zoomOut">
           <img class="control-icon" src="assets/svg/icon-zoom-out.svg" alt="">
         </button>
-        <button class="btn btn--icon" id="btn-reset-view" title="重置视角" aria-label="重置视角">
+        <button class="btn btn--icon" id="btn-reset-view" title="重置视角" aria-label="重置视角" data-i18n-title="action.resetView" data-i18n-aria-label="action.resetView">
           <img class="control-icon" src="assets/svg/icon-reset-view.svg" alt="">
         </button>
       </div>
 
       <!-- 功能切换 -->
       <div class="control-group">
-        <button class="btn btn--ghost" id="btn-eclipse" title="日食/月食模拟">🌑 日食/月食</button>
-        <button class="btn btn--ghost" id="btn-comet" title="哈雷彗星">☄️ 彗星</button>
-        <button class="btn btn--ghost" id="btn-magnetic" title="磁场演示">🧲 磁场</button>
+        <button class="btn btn--ghost" id="btn-eclipse" title="日食/月食模拟" aria-label="日食/月食模拟" data-i18n-title="nav.eclipse" data-i18n-aria-label="nav.eclipse"><span aria-hidden="true">🌑</span><span data-i18n="nav.eclipse">日食/月食</span></button>
+        <button class="btn btn--ghost" id="btn-comet" title="哈雷彗星" aria-label="哈雷彗星" data-i18n-title="nav.comet" data-i18n-aria-label="nav.comet"><span aria-hidden="true">☄️</span><span data-i18n="nav.comet">彗星</span></button>
+        <button class="btn btn--ghost" id="btn-magnetic" title="磁场演示" aria-label="磁场演示" data-i18n-title="nav.magnetic" data-i18n-aria-label="nav.magnetic"><span aria-hidden="true">🧲</span><span data-i18n="nav.magnetic">磁场</span></button>
+        <button class="btn btn--ghost" id="btn-solar-wind" title="太阳风演示" aria-label="太阳风演示" data-i18n-title="nav.solarWind" data-i18n-aria-label="nav.solarWind"><span aria-hidden="true">☀️</span><span data-i18n="nav.solarWind">太阳风</span></button>
+        <button class="btn btn--ghost" id="btn-orbit-game" title="轨道小游戏" aria-label="轨道小游戏" data-i18n-title="nav.game" data-i18n-aria-label="nav.game"><span aria-hidden="true">🎯</span><span data-i18n="nav.game">轨道小游戏</span></button>
       </div>
 
       <!-- 设置 -->
       <div class="control-group">
-        <button class="btn btn--icon" id="btn-skin" title="换肤" aria-label="打开天体换肤">
+        <button class="btn btn--icon" id="btn-skin" title="换肤" aria-label="打开天体换肤" data-i18n-title="nav.skin" data-i18n-aria-label="nav.skin">
           <img class="control-icon" src="assets/svg/icon-skin.svg" alt="">
         </button>
-        <button class="btn btn--icon" id="btn-lang" title="语言切换" aria-label="切换语言">
+        <button class="btn btn--icon" id="btn-lang" title="语言切换" aria-label="切换语言" data-i18n-title="nav.language" data-i18n-aria-label="nav.language">
           <img class="control-icon" src="assets/svg/icon-language.svg" alt="">
         </button>
-        <button class="btn btn--icon" id="btn-help" title="帮助" aria-label="打开帮助">
+        <button class="btn btn--icon" id="btn-help" title="帮助" aria-label="打开帮助" data-i18n-title="nav.help" data-i18n-aria-label="nav.help">
           <img class="control-icon" src="assets/svg/icon-help.svg" alt="">
         </button>
       </div>
@@ -85,6 +88,6 @@
        脚本（模块化加载）
        注：开发阶段用 TypeScript 编译后的 bundle
        ============================================ -->
-  <script type="module" src="src/main.js"></script>
+  <script type="module" src="dist/main.js"></script>
 </body>
 </html>

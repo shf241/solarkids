@@ -4,7 +4,7 @@ import {
   createDefaultUserState,
   STORAGE_KEY,
   UserStateStore,
-} from "../src/storage";
+} from "../src/storage/index.ts";
 import { MemoryStorage, ThrowingStorage } from "./helpers/memory-storage";
 
 describe("UserStateStore", () => {
@@ -47,6 +47,12 @@ describe("UserStateStore", () => {
 
     expect(state.skinId).toBe("colorful");
     expect(state.language).toBe("en");
+  });
+
+  it("uses the UI cartoon skin as the default", () => {
+    const store = new UserStateStore(new MemoryStorage());
+
+    expect(store.loadUserState().skinId).toBe("cartoon");
   });
 
   it("S-05 records a visited planet once", () => {

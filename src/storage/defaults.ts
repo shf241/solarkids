@@ -1,4 +1,4 @@
-import type { SolarKidsUserState } from "./types";
+import type { SolarKidsUserState } from "./types.js";
 
 export const STORAGE_KEY = "solarkids.user-state.v1";
 
@@ -6,7 +6,7 @@ export function createDefaultUserState(): SolarKidsUserState {
   return {
     version: 1,
     language: "zh-CN",
-    skinId: "default",
+    skinId: "cartoon",
     learningProgress: {
       visitedPlanetIds: [],
       completedTaskIds: [],

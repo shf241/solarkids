@@ -527,19 +527,27 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   #control-bar {
-    justify-content: flex-start;
-    flex-wrap: nowrap;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 4px;
     padding: 4px 8px;
     min-height: 48px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
+    overflow-x: hidden;
   }
 
   .control-group {
     flex: 0 0 auto;
     padding: 0 2px;
+  }
+
+  .control-group:nth-child(3),
+  .control-group:last-child {
+    order: 1;
+  }
+
+  .control-group:first-child,
+  .control-group:nth-child(2) {
+    order: 2;
   }
 
   /* 手机端按钮自适应 */
@@ -555,9 +563,22 @@ input[type="range"]::-webkit-slider-thumb {
     height: 40px;
   }
 
+  .btn--ghost {
+    width: 40px;
+    padding: 0;
+  }
+
+  .btn--ghost [data-i18n] {
+    display: none;
+  }
+
   .control-icon {
     width: 23px;
     height: 23px;
+  }
+
+  input[type="range"] {
+    width: 64px;
   }
 
   /* 侧边栏信息简化 */

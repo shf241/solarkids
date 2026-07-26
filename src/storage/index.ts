@@ -1,4 +1,4 @@
-export { createDefaultUserState, STORAGE_KEY } from "./defaults";
+export { createDefaultUserState, STORAGE_KEY } from "./defaults.js";
 export {
   loadUserState,
   markPlanetVisited,
@@ -11,11 +11,11 @@ export {
   setSkin,
   updateUserState,
   UserStateStore,
-} from "./storage";
+} from "./storage.js";
 export type {
   GameRecord,
   LanguageCode,
   LearningProgress,
   SolarKidsUserState,
   StorageLike,
-} from "./types";
+} from "./types.js";

@@ -8,6 +8,7 @@
 // ---- 类型定义 ----
 
 export interface PlanetInfo {
+  id?: string;
   name: string;
   nameCN: string;
   emoji: string;

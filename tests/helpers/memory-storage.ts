@@ -1,4 +1,4 @@
-import type { StorageLike } from "../../src/storage";
+import type { StorageLike } from "../../src/storage/index.ts";
 
 export class MemoryStorage implements StorageLike {
   readonly #values = new Map<string, string>();

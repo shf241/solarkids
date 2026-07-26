@@ -28,6 +28,7 @@ const CYCLE_MS = 12_000;
 
 export interface EclipseSceneOptions {
   getSkinType: () => SkinType;
+  translate: (key: string) => string;
 }
 
 export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
@@ -91,7 +92,8 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
     render(frame, context) {
       const { width, height } = context.getViewport();
       const skinType = options.getSkinType();
-      buttons = createEclipseButtons(width);
+      const translate = options.translate;
+      buttons = createEclipseButtons(width, translate);
       drawSpaceBackdrop(
         context.context2D,
         width,
@@ -102,8 +104,8 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
       drawSceneHeader(
         context.context2D,
         width,
-        '日食与月食实验室',
-        '观察太阳、地球与月球排成一线时，光和影如何变化',
+        translate('scene.eclipse.title'),
+        translate('scene.eclipse.description'),
         ACCENT
       );
       drawToolbar(
@@ -120,7 +122,8 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
           height,
           kind,
           progress,
-          skinType
+          skinType,
+          translate
         );
       } else {
         drawOverview(
@@ -130,7 +133,8 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
           kind,
           progress,
           frame,
-          skinType
+          skinType,
+          translate
         );
       }
 
@@ -139,7 +143,11 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
         width,
         height,
         progress,
-        ['开始接近', '排成一线', '逐渐离开'],
+        [
+          translate('eclipse.timeline.start'),
+          translate('eclipse.timeline.align'),
+          translate('eclipse.timeline.end'),
+        ],
         ACCENT
       );
     },
@@ -162,14 +170,17 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
   };
 }
 
-function createEclipseButtons(width: number): SceneButton[] {
+function createEclipseButtons(
+  width: number,
+  translate: (key: string) => string,
+): SceneButton[] {
   return createToolbarButtons(
     width,
     [
-      { id: 'solar', label: '日食' },
-      { id: 'lunar', label: '月食' },
-      { id: 'overview', label: '全景视角' },
-      { id: 'earth', label: '地球视角' },
+      { id: 'solar', label: translate('eclipse.mode.solar') },
+      { id: 'lunar', label: translate('eclipse.mode.lunar') },
+      { id: 'overview', label: translate('eclipse.mode.overview') },
+      { id: 'earth', label: translate('eclipse.mode.earth') },
     ],
     78
   );
@@ -182,7 +193,8 @@ function drawOverview(
   kind: EclipseKind,
   progress: number,
   frame: Readonly<FrameSnapshot>,
-  skinType: SkinType
+  skinType: SkinType,
+  translate: (key: string) => string,
 ): void {
   const compact = width < 620;
   const top = compact ? 120 : 132;
@@ -226,18 +238,18 @@ function drawOverview(
     skinType
   );
 
-  drawBodyLabel(ctx, '太阳', sun.x, sun.y + (compact ? 42 : 58));
-  drawBodyLabel(ctx, '地球', earth.x, earth.y + (compact ? 30 : 38));
-  drawBodyLabel(ctx, '月球', moon.x, moon.y + (compact ? 18 : 22));
+  drawBodyLabel(ctx, translate('solarWind.sun'), sun.x, sun.y + (compact ? 42 : 58));
+  drawBodyLabel(ctx, translate('solarWind.earth'), earth.x, earth.y + (compact ? 30 : 38));
+  drawBodyLabel(ctx, translate('body.moon'), moon.x, moon.y + (compact ? 18 : 22));
 
   const status =
     alignment > 0.82
       ? kind === 'solar'
-        ? '关键位置：月球影子落到地球上'
-        : '关键位置：月球进入地球的影子'
+        ? translate('eclipse.status.solarAligned')
+        : translate('eclipse.status.lunarAligned')
       : kind === 'solar'
-        ? '月球正在靠近太阳与地球的连线'
-        : '月球正在靠近地球背向太阳的一侧';
+        ? translate('eclipse.status.solarApproach')
+        : translate('eclipse.status.lunarApproach');
   drawInfoChip(ctx, status, compact ? 14 : 28, height - (compact ? 104 : 124), ACCENT);
 
   const noteWidth = Math.min(compact ? width - 28 : 260, width - 32);
@@ -249,9 +261,11 @@ function drawOverview(
     noteY,
     noteWidth,
     kind === 'solar'
-      ? '日食发生时，月球位于太阳和地球之间。影子只覆盖地球的一小部分。'
-      : '月食发生时，地球位于太阳和月球之间。月球进入地球投下的影子。',
-    kind === 'solar' ? '太阳 → 月球 → 地球' : '太阳 → 地球 → 月球'
+      ? translate('eclipse.note.solar')
+      : translate('eclipse.note.lunar'),
+    kind === 'solar'
+      ? translate('eclipse.order.solar')
+      : translate('eclipse.order.lunar')
   );
 }
 
@@ -261,7 +275,8 @@ function drawEarthView(
   height: number,
   kind: EclipseKind,
   progress: number,
-  skinType: SkinType
+  skinType: SkinType,
+  translate: (key: string) => string,
 ): void {
   const compact = width < 620;
   const centerX = width * 0.5;
@@ -292,7 +307,13 @@ function drawEarthView(
     ctx.strokeStyle = 'rgba(190, 211, 242, 0.32)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    drawInfoChip(ctx, `太阳遮挡约 ${coverage}%`, 22, height - 112, ACCENT);
+    drawInfoChip(
+      ctx,
+      translate('eclipse.coverage').replace('{value}', String(coverage)),
+      22,
+      height - 112,
+      ACCENT,
+    );
   } else {
     const moonRadius = Math.min(width, height) * (compact ? 0.12 : 0.15);
     const shadowX = centerX + phaseOffset * moonRadius * 2.2;
@@ -318,7 +339,13 @@ function drawEarthView(
     ctx.arc(shadowX, centerY, moonRadius * 1.08, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    drawInfoChip(ctx, '地球大气会让月球呈现暗红色', 22, height - 112, ACCENT);
+    drawInfoChip(
+      ctx,
+      translate('eclipse.atmosphere'),
+      22,
+      height - 112,
+      ACCENT,
+    );
   }
 
   ctx.fillStyle = 'rgba(224, 234, 255, 0.82)';
@@ -327,8 +354,8 @@ function drawEarthView(
   ctx.textBaseline = 'top';
   ctx.fillText(
     kind === 'solar'
-      ? '从地面观察：月球圆面逐渐遮住太阳'
-      : '从地面观察：地球的影子缓慢掠过月球',
+      ? translate('eclipse.view.solar')
+      : translate('eclipse.view.lunar'),
     centerX,
     compact ? 124 : 138
   );

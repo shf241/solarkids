@@ -1,9 +1,9 @@
-import { createDefaultUserState, STORAGE_KEY } from "./defaults";
+import { createDefaultUserState, STORAGE_KEY } from "./defaults.js";
 import type {
   LanguageCode,
   SolarKidsUserState,
   StorageLike,
-} from "./types";
+} from "./types.js";
 
 type UnknownRecord = Record<string, unknown>;
 

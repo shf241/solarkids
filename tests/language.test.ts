@@ -1,16 +1,19 @@
 import { readFileSync } from "node:fs";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import languageData from "../src/data/language.json";
 import {
   I18nService,
+  isTranslationData,
+  loadTranslationData,
   type TranslationData,
-} from "../src/i18n";
+} from "../src/i18n/index.ts";
 import {
   UserStateStore,
   type LanguageCode,
-} from "../src/storage";
+} from "../src/storage/index.ts";
+import { createMember4Integration } from "../src/integration/index.ts";
 import { MemoryStorage } from "./helpers/memory-storage";
 
 const dictionaries = languageData as TranslationData;
@@ -34,7 +37,7 @@ const planetFields = [
 ] as const;
 
 function createService(storage = new MemoryStorage()): I18nService {
-  return new I18nService(new UserStateStore(storage));
+  return new I18nService(new UserStateStore(storage), dictionaries);
 }
 
 describe("language data and I18nService", () => {
@@ -133,5 +136,61 @@ describe("language data and I18nService", () => {
       expect(fact.length).toBeLessThanOrEqual(100);
       expect(fact).not.toMatch(forbiddenWords);
     }
+  });
+
+  it("loads valid translation JSON through the browser fetch boundary", async () => {
+    const fetcher = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => dictionaries,
+    });
+
+    await expect(loadTranslationData("language.json", fetcher)).resolves.toEqual(
+      dictionaries,
+    );
+  });
+
+  it("rejects an unsuccessful translation response", async () => {
+    const fetcher = async () => ({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    });
+
+    await expect(loadTranslationData("missing.json", fetcher)).rejects.toThrow(
+      "HTTP 404",
+    );
+  });
+
+  it("rejects dictionaries whose language keys do not match", async () => {
+    const invalidData = {
+      "zh-CN": { "action.start": "开始探索" },
+      en: { "action.play": "Play" },
+    };
+    const fetcher = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => invalidData,
+    });
+
+    expect(isTranslationData(invalidData)).toBe(false);
+    await expect(loadTranslationData("invalid.json", fetcher)).rejects.toThrow(
+      TypeError,
+    );
+  });
+
+  it("keeps a Chinese operational fallback when the JSON request fails", async () => {
+    const store = new UserStateStore(new MemoryStorage());
+    store.setLanguage("en");
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const integration = await createMember4Integration(store, async () => {
+      throw new Error("offline");
+    });
+
+    expect(integration.translationsLoaded).toBe(false);
+    expect(integration.translate("solarWind.mode.shield")).toBe("磁层屏障");
+    expect(integration.translate("magnetic.mode.compare")).toBe("磁场对比");
+    warning.mockRestore();
   });
 });

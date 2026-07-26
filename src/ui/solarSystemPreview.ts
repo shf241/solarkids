@@ -19,6 +19,8 @@ export function setSkinType(type: SkinType): void {
 type PreviewCallbacks = {
   updatePanel: (info: PlanetInfo | null) => void;
   showToast: (message: string, duration?: number) => void;
+  onPlanetSelected?: (info: PlanetInfo) => void;
+  translate?: (key: string) => string;
 };
 
 export interface SolarSystemPreviewController {
@@ -251,7 +253,13 @@ export function initSolarSystemPreview(
       });
     }
 
-    drawHint(ctx, width, height);
+    drawHint(
+      ctx,
+      width,
+      height,
+      callbacks.translate?.('hint.clickPlanet') ??
+        '点击一颗行星，看看它的小秘密',
+    );
   }
 
   function pickPlanet(event: PointerEvent): PlanetPreview | null {
@@ -301,8 +309,13 @@ export function initSolarSystemPreview(
     const planet = pickPlanet(event);
     if (!planet) return;
     state.selectedId = planet.id;
-    callbacks.updatePanel(toPlanetInfo(planet));
-    callbacks.showToast(`你发现了${planet.nameCN}`);
+    const info = toPlanetInfo(planet);
+    callbacks.updatePanel(info);
+    if (info && callbacks.onPlanetSelected) {
+      callbacks.onPlanetSelected(info);
+    } else {
+      callbacks.showToast(`你发现了${planet.nameCN}`);
+    }
     draw();
   });
 
@@ -707,11 +720,16 @@ function drawStorm(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fill();
 }
 
-function drawHint(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+function drawHint(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  text: string,
+): void {
   ctx.fillStyle = 'rgba(196, 208, 232, 0.78)';
   ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('点击一颗行星，看看它的小秘密', width * 0.48, Math.max(28, height - 28));
+  ctx.fillText(text, width * 0.48, Math.max(28, height - 28));
 }
 
 function getPlanetPosition(
@@ -757,6 +775,7 @@ function getCometPosition(
 function toPlanetInfo(planet: PlanetPreview | null): PlanetInfo | null {
   if (!planet) return null;
   return {
+    id: planet.id,
     name: planet.name,
     nameCN: planet.nameCN,
     emoji: planet.emoji,
