@@ -2,9 +2,9 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SolarKids — 天体运行少儿教学</title>
-  <link rel="stylesheet" href="src/style.css">
+  <link rel="stylesheet" href="src/style.css?v=20260726-experience-tabs-1">
 </head>
 <body>
 
@@ -15,17 +15,29 @@
 
     <!-- Canvas 画布区（成员3负责） -->
     <div id="canvas-container">
-      <canvas id="main-canvas"></canvas>
+      <canvas id="main-canvas" tabindex="0"></canvas>
+      <div id="canvas-view-status" class="canvas-view-status" aria-live="polite">
+        视角：太阳系总览
+      </div>
     </div>
 
     <!-- 侧边信息面板（成员1+2+3共用） -->
     <aside id="side-panel">
-      <h2 id="planet-name">🌍 选择一颗行星</h2>
+      <h2 id="planet-name" class="planet-info__title">
+        <img
+          class="planet-info__title-icon"
+          src="assets/svg/earth.svg"
+          alt=""
+        >
+        <span class="planet-info__title-text">选择一颗行星</span>
+      </h2>
       <p id="planet-desc">点击画布中的天体，查看详细信息</p>
       <hr class="divider">
       <div class="planet-info__stats" id="planet-stats">
         <!-- JS 动态填充 -->
       </div>
+      <div id="planet-sections"></div>
+      <div class="planet-info__actions" id="planet-actions"></div>
     </aside>
 
     <!-- 底部控制栏 -->
@@ -51,13 +63,71 @@
         <button class="btn btn--icon" id="btn-reset-view" title="重置视角" aria-label="重置视角">
           <img class="control-icon" src="assets/svg/icon-reset-view.svg" alt="">
         </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-toggle-orbits"
+          title="显示或隐藏轨道"
+          aria-label="显示或隐藏行星轨道"
+          aria-pressed="true"
+        >
+          🪐 轨道
+        </button>
       </div>
 
-      <!-- 功能切换 -->
-      <div class="control-group">
-        <button class="btn btn--ghost" id="btn-eclipse" title="日食/月食模拟">🌑 日食/月食</button>
-        <button class="btn btn--ghost" id="btn-comet" title="哈雷彗星">☄️ 彗星</button>
-        <button class="btn btn--ghost" id="btn-magnetic" title="磁场演示">🧲 磁场</button>
+      <!-- 模块6：互斥视角与现象入口 -->
+      <div
+        class="control-group control-group--experiences"
+        role="group"
+        aria-label="视角与天文现象"
+      >
+        <button
+          class="btn btn--ghost"
+          id="btn-view-overview"
+          title="太阳系总览视角（快捷键 0）"
+          aria-pressed="true"
+        >
+          🌌 太阳系总览
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-view-earth"
+          title="站在地球表面观察天空（快捷键 E）"
+          aria-pressed="false"
+        >
+          🌍 地表视角
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-eclipse"
+          title="日食/月食模拟"
+          aria-pressed="false"
+        >
+          🌑 日食/月食
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-comet"
+          title="哈雷彗星"
+          aria-pressed="false"
+        >
+          ☄️ 彗星
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-magnetic"
+          title="磁场演示"
+          aria-pressed="false"
+        >
+          🧲 磁场
+        </button>
+        <button
+          class="btn btn--ghost"
+          id="btn-solar-rain"
+          title="太阳雨（功能待实现）"
+          aria-pressed="false"
+        >
+          🌧️ 太阳雨
+        </button>
       </div>
 
       <!-- 设置 -->
@@ -85,6 +155,6 @@
        脚本（模块化加载）
        注：开发阶段用 TypeScript 编译后的 bundle
        ============================================ -->
-  <script type="module" src="src/main.js"></script>
+  <script type="module" src="src/main.js?v=20260726-experience-tabs-1"></script>
 </body>
 </html>

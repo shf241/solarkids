@@ -24,11 +24,39 @@ export function disposeCanvasRuntime(): void {
 export { AnimationClock } from './AnimationClock.js';
 export { AnimationController } from './AnimationController.js';
 export { Camera2D } from './Camera2D.js';
+export {
+  CanvasInteractionController,
+  createGestureSnapshot,
+  getBodyViewPosition,
+  normalizeAngleDelta,
+} from './CanvasInteractions.js';
 export { CanvasRuntime } from './CanvasRuntime.js';
 export { EventBus } from './EventBus.js';
+export {
+  EARTH_OBLIQUITY_RADIANS,
+  equatorialToHorizontal,
+  getBodyPosition3D,
+  getEarthObserverHorizonY,
+  getObserverLatitude,
+  getObserverSiderealAngle,
+  normalizeObserverAngle,
+  projectBodyToEarthSky,
+  rotateEclipticToEquatorial,
+} from './EarthObserverView.js';
 export { LayerManager } from './LayerManager.js';
 export { SceneManager } from './SceneManager.js';
 export { WorldStateStore } from './WorldState.js';
+export {
+  createCometScene,
+  getCometTailAppearance,
+  getHalleyOrbitState,
+  solveKeplerEquation,
+  HALLEY_ORBIT,
+} from './cometScene.js';
+export {
+  createSolarSystemScene,
+  getOrbitalPosition3D,
+} from './solarSystemScene.js';
 export {
   bindCanvasControlEvents,
   speedLevelToTimeScale,
@@ -41,8 +69,17 @@ export type {
 } from './AnimationController.js';
 export type { AnimationClockOptions } from './AnimationClock.js';
 export type { Camera2DOptions, CameraChangeListener } from './Camera2D.js';
+export type {
+  CanvasInteractionOptions,
+  CanvasViewState,
+  GestureSnapshot,
+} from './CanvasInteractions.js';
 export type { CanvasRuntimeOptions } from './CanvasRuntime.js';
 export type { EventListener } from './EventBus.js';
+export type {
+  EarthObserverProjection,
+  EarthObserverProjectionOptions,
+} from './EarthObserverView.js';
 export type { SceneChangeListener } from './SceneManager.js';
 export type { WorldStateListener } from './WorldState.js';
 export type {
@@ -57,6 +94,7 @@ export type {
   FrameScheduler,
   FrameSnapshot,
   Point2D,
+  Point3D,
   RuntimeEventMap,
   SceneChange,
   WorldStateChange,

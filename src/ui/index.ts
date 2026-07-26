@@ -8,31 +8,69 @@
 // ---- 类型定义 ----
 
 export interface PlanetInfo {
+  id?: string;
   name: string;
   nameCN: string;
   emoji: string;
   desc: string;
   stats: { label: string; value: string }[];
+  sections?: { title: string; content: string }[];
+  actions?: {
+    id: string;
+    label: string;
+    variant?: 'primary' | 'secondary';
+  }[];
 }
 
 // ---- 面板管理 ----
+
+type PanelSkinType = 'cartoon' | 'realistic';
+
+let panelSkinType: PanelSkinType = 'cartoon';
+let activePanelInfo: PlanetInfo | null = null;
+const PANEL_ICON_BODY_IDS = new Set([
+  'sun',
+  'mercury',
+  'venus',
+  'earth',
+  'moon',
+  'mars',
+  'jupiter',
+  'saturn',
+  'uranus',
+  'neptune',
+]);
+
+/** 换肤时同步更新侧栏标题图标，不重建百科正文。 */
+export function setPanelSkinType(type: PanelSkinType): void {
+  panelSkinType = type;
+  const nameEl = document.getElementById('planet-name');
+  if (nameEl) renderPanelTitle(nameEl, activePanelInfo);
+}
 
 /** 更新侧边面板显示的行星信息 */
 export function updatePanel(info: PlanetInfo | null): void {
   const nameEl = document.getElementById('planet-name');
   const descEl = document.getElementById('planet-desc');
   const statsEl = document.getElementById('planet-stats');
+  const sectionsEl = document.getElementById('planet-sections');
+  const actionsEl = document.getElementById('planet-actions');
 
-  if (!nameEl || !descEl || !statsEl) return;
-
-  if (!info) {
-    nameEl.textContent = '🌍 选择一颗行星';
-    descEl.textContent = '点击画布中的天体，查看详细信息';
-    statsEl.innerHTML = '';
+  if (!nameEl || !descEl || !statsEl || !sectionsEl || !actionsEl) {
     return;
   }
 
-  nameEl.textContent = `${info.emoji} ${info.nameCN}`;
+  activePanelInfo = info;
+  if (!info) {
+    renderPanelTitle(nameEl, null);
+    descEl.textContent = '点击画布中的天体，查看详细信息';
+    statsEl.innerHTML = '';
+    sectionsEl.innerHTML = '';
+    actionsEl.innerHTML = '';
+    return;
+  }
+
+  renderPanelTitle(nameEl, info);
   descEl.textContent = info.desc;
   statsEl.innerHTML = info.stats
     .map(
@@ -43,6 +81,98 @@ export function updatePanel(info: PlanetInfo | null): void {
       </div>`
     )
     .join('');
+  sectionsEl.innerHTML = (info.sections ?? [])
+    .map(
+      section => `
+        <section class="planet-info__section">
+          <h3>${escapeHtml(section.title)}</h3>
+          <p>${escapeHtml(section.content)}</p>
+        </section>
+      `
+    )
+    .join('');
+  actionsEl.innerHTML = (info.actions ?? [])
+    .map(
+      action => `
+        <button
+          class="planet-info__action ${
+            action.variant === 'secondary'
+              ? 'planet-info__action--secondary'
+              : ''
+          }"
+          type="button"
+          data-panel-action="${escapeHtml(action.id)}"
+        >
+          ${escapeHtml(action.label)}
+        </button>
+      `
+    )
+    .join('');
+  for (const button of actionsEl.querySelectorAll<HTMLButtonElement>(
+    '[data-panel-action]'
+  )) {
+    button.addEventListener('click', () => {
+      document.dispatchEvent(
+        new CustomEvent('solarkids:panelAction', {
+          detail: {
+            actionId: button.dataset.panelAction,
+            bodyId: info.id,
+          },
+        })
+      );
+    });
+  }
+}
+
+function renderPanelTitle(
+  nameEl: HTMLElement,
+  info: PlanetInfo | null
+): void {
+  const bodyId = info?.id ?? 'earth';
+  const iconSrc = getPanelIconSource(bodyId);
+  nameEl.classList.add('planet-info__title');
+  nameEl.replaceChildren();
+
+  if (iconSrc) {
+    const icon = document.createElement('img');
+    icon.className = 'planet-info__title-icon';
+    icon.src = iconSrc;
+    icon.alt = '';
+    icon.decoding = 'async';
+    nameEl.appendChild(icon);
+  } else if (info?.emoji) {
+    const emoji = document.createElement('span');
+    emoji.className = 'planet-info__title-emoji';
+    emoji.textContent = info.emoji;
+    nameEl.appendChild(emoji);
+  }
+
+  const label = document.createElement('span');
+  label.className = 'planet-info__title-text';
+  label.textContent = info?.nameCN ?? '选择一颗行星';
+  nameEl.appendChild(label);
+}
+
+function getPanelIconSource(bodyId: string): string | null {
+  if (bodyId === 'comet') return 'assets/svg/halley.svg';
+  if (!PANEL_ICON_BODY_IDS.has(bodyId)) return null;
+  return panelSkinType === 'cartoon'
+    ? `assets/svg/${bodyId}.svg`
+    : `assets/images/${bodyId}.png`;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    character =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;',
+      })[character] ?? character
+  );
 }
 
 // ---- 弹窗（Modal）系统 ----

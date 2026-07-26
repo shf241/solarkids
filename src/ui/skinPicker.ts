@@ -36,7 +36,7 @@ export function showSkinPicker(
       </p>
       <div class="skin-picker__grid">${skinCards}</div>
       <p class="tooltip" style="margin-top:var(--space-md)">
-        💡 卡通模式使用 SVG，写实模式使用 PNG 纹理
+        💡 两种模式共享球面动画，只替换天体、光环和星空纹理
       </p>
     </div>
   `;

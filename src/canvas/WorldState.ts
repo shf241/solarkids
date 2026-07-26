@@ -60,7 +60,14 @@ function cloneBodyState(state: CelestialBodyState): CelestialBodyState {
   return {
     ...state,
     position: { ...state.position },
+    position3D: state.position3D ? { ...state.position3D } : undefined,
     velocity: state.velocity ? { ...state.velocity } : undefined,
+    displayPosition: state.displayPosition
+      ? { ...state.displayPosition }
+      : undefined,
+    displayVelocity: state.displayVelocity
+      ? { ...state.displayVelocity }
+      : undefined,
     metadata: state.metadata ? { ...state.metadata } : undefined,
   };
 }

@@ -17,14 +17,17 @@ export type PlanetId =
   | 'jupiter'
   | 'saturn'
   | 'uranus'
-  | 'neptune'
-  | 'pluto';
+  | 'neptune';
 
+/** 成员1专题场景沿用的图标素材类型。 */
 export type SkinType = 'svg' | 'png';
+
+/** 成员3太阳系球面渲染使用的纹理模式。 */
+export type RenderSkinType = 'cartoon' | 'realistic';
 
 export interface SkinConfig {
   name: string;
-  type: SkinType;
+  type: RenderSkinType;
   assets: Record<PlanetId, string>;
 }
 
@@ -38,6 +41,22 @@ export interface SkinsData {
 
 const imageCache = new Map<string, HTMLImageElement>();
 let skinsConfig: SkinsData | null = null;
+
+const topicAssetPaths: Record<
+  SkinType,
+  Partial<Record<PlanetId, string>>
+> = {
+  svg: {
+    sun: 'assets/svg/sun.svg',
+    earth: 'assets/svg/earth.svg',
+    moon: 'assets/svg/moon.svg',
+  },
+  png: {
+    sun: 'assets/images/sun.png',
+    earth: 'assets/images/earth.png',
+    moon: 'assets/images/moon.png',
+  },
+};
 
 // ---- 加载配置 ----
 
@@ -96,7 +115,10 @@ export async function loadPlanetAsset(
 export async function preloadAllAssets(config: SkinsData): Promise<void> {
   const skin = getActiveSkin(config);
   const ids = Object.keys(skin.assets) as PlanetId[];
-  await Promise.all(ids.map(id => loadPlanetAsset(id, skin)));
+  await Promise.all([
+    Promise.all(ids.map(id => loadPlanetAsset(id, skin))),
+    preloadTopicAssets(),
+  ]);
 }
 
 /** 清空缓存（换肤时调用） */
@@ -105,7 +127,10 @@ export function clearAssetCache(): void {
 }
 
 /** 获取已缓存的素材图片（供 Canvas 渲染使用） */
-export function getCachedImage(planetId: string, skinType: SkinType): HTMLImageElement | null {
+export function getCachedImage(
+  planetId: string,
+  skinType: SkinType | RenderSkinType
+): HTMLImageElement | null {
   const cacheKey = `${planetId}_${skinType}`;
   return imageCache.get(cacheKey) ?? null;
 }
@@ -118,6 +143,33 @@ function tryLoadImage(img: HTMLImageElement, src: string): Promise<boolean> {
     img.onerror = () => resolve(false);
     img.src = src;
   });
+}
+
+async function preloadTopicAssets(): Promise<void> {
+  const tasks: Promise<void>[] = [];
+
+  for (const [skinType, paths] of Object.entries(topicAssetPaths) as Array<
+    [SkinType, Partial<Record<PlanetId, string>>]
+  >) {
+    for (const [planetId, src] of Object.entries(paths)) {
+      const cacheKey = `${planetId}_${skinType}`;
+      if (imageCache.has(cacheKey)) continue;
+
+      tasks.push(
+        (async () => {
+          const image = new Image();
+          image.crossOrigin = 'anonymous';
+          if (await tryLoadImage(image, src)) {
+            imageCache.set(cacheKey, image);
+          } else {
+            console.warn(`⚠️ 专题素材未找到: ${src}`);
+          }
+        })()
+      );
+    }
+  }
+
+  await Promise.all(tasks);
 }
 
 /** 用 SVG DataURL 生成行星占位图 */
