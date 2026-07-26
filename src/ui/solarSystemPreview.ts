@@ -1,7 +1,7 @@
 import type { PlanetInfo } from './index.js';
 import { getCachedImage, type SkinType } from './assetLoader.js';
 
-let skinType: SkinType = 'svg'; // 当前皮肤类型
+let skinType: SkinType = 'cartoon'; // 当前皮肤类型
 
 // 哈雷彗星专属素材
 const halleyImg = new Image();
@@ -9,14 +9,27 @@ halleyImg.src = 'assets/svg/halley.svg';
 
 // 写实背景素材
 const bgRealistic = new Image();
-bgRealistic.src = 'assets/images/background.png';
+bgRealistic.src = 'assets/skins/2k_stars_milky_way.jpg';
+const bgCartoon = new Image();
+bgCartoon.src =
+  'assets/cartoon_skin/stars-milky-way-cartoon-small-stars.png';
+
+export type SpaceViewOptions = {
+  zoom?: number;
+  rotation?: number;
+  position?: Readonly<{ x: number; y: number }>;
+};
 
 /** 外部设置初始皮肤类型 */
 export function setSkinType(type: SkinType): void {
   skinType = type;
 }
 
-type PreviewCallbacks = {
+export function getSkinType(): SkinType {
+  return skinType;
+}
+
+export type PreviewCallbacks = {
   updatePanel: (info: PlanetInfo | null) => void;
   showToast: (message: string, duration?: number) => void;
 };
@@ -26,12 +39,15 @@ export interface SolarSystemPreviewController {
   isActive(): boolean;
 }
 
-type PlanetPreview = {
+export type PlanetPreview = {
   id: string;
   name: string;
   nameCN: string;
   emoji: string;
   desc: string;
+  /** 相对地球平均半径的真实半径比。 */
+  radiusEarths?: number;
+  /** 经过统一非线性映射后的 Canvas 显示半径。 */
   radius: number;
   distanceAU: number;
   angle: number;
@@ -39,15 +55,25 @@ type PlanetPreview = {
   stats: { label: string; value: string }[];
 };
 
-const PLANETS: PlanetPreview[] = [
+export type PlanetRotationVisual = {
+  /** 当前自转相位，单位弧度；用于驱动天体外侧的圆形箭头。 */
+  rotation?: number;
+  /** 自转轴相对画面竖直方向的倾角，单位弧度；用于确定箭头轨迹方向。 */
+  axialTilt?: number;
+  /** 自转方向：1 为顺向，-1 为逆向。 */
+  rotationDirection?: 1 | -1;
+};
+
+export const PLANETS: PlanetPreview[] = [
   {
     id: 'mercury',
     name: 'Mercury',
     nameCN: '水星',
     emoji: '☿️',
     desc: '水星离太阳最近，表面有很多像月球一样的陨石坑。',
-    radius: 8,
-    distanceAU: 0.39,
+    radiusEarths: 0.383,
+    radius: getPhysicalDisplayRadius(0.383),
+    distanceAU: 0.387,
     angle: -0.4,
     color: '#b0b0b0',
     stats: [
@@ -61,8 +87,9 @@ const PLANETS: PlanetPreview[] = [
     nameCN: '金星',
     emoji: '♀️',
     desc: '金星被厚厚的云层包住，是太阳系里非常明亮的行星。',
-    radius: 12,
-    distanceAU: 0.72,
+    radiusEarths: 0.949,
+    radius: getPhysicalDisplayRadius(0.949),
+    distanceAU: 0.723,
     angle: 0.8,
     color: '#e8cda0',
     stats: [
@@ -76,7 +103,8 @@ const PLANETS: PlanetPreview[] = [
     nameCN: '地球',
     emoji: '🌍',
     desc: '地球有海洋、陆地和云，是我们生活的蓝色星球。',
-    radius: 13,
+    radiusEarths: 1,
+    radius: getPhysicalDisplayRadius(1),
     distanceAU: 1,
     angle: 1.9,
     color: '#4da6e8',
@@ -91,8 +119,9 @@ const PLANETS: PlanetPreview[] = [
     nameCN: '火星',
     emoji: '♂️',
     desc: '火星因为表面有红色氧化铁，看起来像一颗红色星球。',
-    radius: 11,
-    distanceAU: 1.52,
+    radiusEarths: 0.532,
+    radius: getPhysicalDisplayRadius(0.532),
+    distanceAU: 1.524,
     angle: 2.8,
     color: '#d45a3a',
     stats: [
@@ -106,8 +135,9 @@ const PLANETS: PlanetPreview[] = [
     nameCN: '木星',
     emoji: '♃',
     desc: '木星是太阳系最大的行星，表面有条纹和著名的大红斑。',
-    radius: 24,
-    distanceAU: 5.2,
+    radiusEarths: 10.973,
+    radius: getPhysicalDisplayRadius(10.973),
+    distanceAU: 5.203,
     angle: -2.6,
     color: '#d4b896',
     stats: [
@@ -121,8 +151,9 @@ const PLANETS: PlanetPreview[] = [
     nameCN: '土星',
     emoji: '♄',
     desc: '土星有漂亮的光环，像戴着一顶宽宽的帽子。',
-    radius: 22,
-    distanceAU: 9.58,
+    radiusEarths: 9.14,
+    radius: getPhysicalDisplayRadius(9.14),
+    distanceAU: 9.537,
     angle: -1.5,
     color: '#e8d5a3',
     stats: [
@@ -136,8 +167,9 @@ const PLANETS: PlanetPreview[] = [
     nameCN: '天王星',
     emoji: '⛢',
     desc: '天王星是冰蓝色的行星，自转方向很特别，像躺着转。',
-    radius: 17,
-    distanceAU: 19.2,
+    radiusEarths: 3.981,
+    radius: getPhysicalDisplayRadius(3.981),
+    distanceAU: 19.191,
     angle: -0.15,
     color: '#7ec8e3',
     stats: [
@@ -151,8 +183,9 @@ const PLANETS: PlanetPreview[] = [
     nameCN: '海王星',
     emoji: '♆',
     desc: '海王星离太阳很远，颜色深蓝，风暴非常猛烈。',
-    radius: 17,
-    distanceAU: 30.05,
+    radiusEarths: 3.865,
+    radius: getPhysicalDisplayRadius(3.865),
+    distanceAU: 30.07,
     angle: 0.55,
     color: '#4b7ef7',
     stats: [
@@ -160,24 +193,9 @@ const PLANETS: PlanetPreview[] = [
       { label: '天气', value: '强风暴' },
     ],
   },
-  {
-    id: 'pluto',
-    name: 'Pluto',
-    nameCN: '冥王星',
-    emoji: '♇',
-    desc: '冥王星现在被称为矮行星，它很小很远，是太阳系边缘的有趣小伙伴。',
-    radius: 7,
-    distanceAU: 39.5,
-    angle: -0.95,
-    color: '#c7a98b',
-    stats: [
-      { label: '身份', value: '矮行星' },
-      { label: '位置', value: '很遥远' },
-    ],
-  },
 ];
 
-const COMET: PlanetPreview = {
+export const COMET: PlanetPreview = {
   id: 'comet',
   name: 'Comet',
   nameCN: '彗星',
@@ -193,9 +211,11 @@ const COMET: PlanetPreview = {
   ],
 };
 
-const ORBIT_BASE = 58;
-const ORBIT_SPACING = 76;
-const MAX_ORBIT = getCompressedOrbit(39.5);
+/** 保留中心可读空间，再用统一幂函数压缩真实 AU 距离。 */
+export const ORBIT_BASE = 42;
+export const ORBIT_SPACING = 40.3;
+export const ORBIT_DISTANCE_EXPONENT = 0.68;
+export const MAX_ORBIT = getCompressedOrbit(30.07);
 
 export function initSolarSystemPreview(
   canvas: HTMLCanvasElement,
@@ -366,18 +386,21 @@ function createStars(count: number): { x: number; y: number; r: number; alpha: n
   }));
 }
 
-function drawSpace(
+export function drawSpace(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  stars: { x: number; y: number; r: number; alpha: number }[]
+  stars: { x: number; y: number; r: number; alpha: number }[],
+  view: Readonly<SpaceViewOptions> = {}
 ): void {
-  // 写实模式使用背景图片
-  if (skinType === 'png' && bgRealistic.complete && bgRealistic.naturalWidth > 0) {
+  const background =
+    skinType === 'cartoon' ? bgCartoon : bgRealistic;
+  if (background.complete && background.naturalWidth > 0) {
     ctx.fillStyle = '#050815';
     ctx.fillRect(0, 0, width, height);
-    // 等比缩放覆盖画布（cover 效果）
-    const imgRatio = bgRealistic.naturalWidth / bgRealistic.naturalHeight;
+
+    const imgRatio =
+      background.naturalWidth / background.naturalHeight;
     const canvasRatio = width / height;
     let dw: number, dh: number;
     if (imgRatio > canvasRatio) {
@@ -387,9 +410,30 @@ function drawSpace(
       dw = width;
       dh = width / imgRatio;
     }
-    const dx = (width - dw) / 2;
-    const dy = (height - dh) / 2;
-    ctx.drawImage(bgRealistic, dx, dy, dw, dh);
+
+    const zoom = Math.max(0.01, view.zoom ?? 1);
+    const rotation = view.rotation ?? 0;
+    const position = view.position ?? { x: 0, y: 0 };
+    const tileOriginX = Math.floor(position.x / dw) * dw;
+    const tileOriginY = Math.floor(position.y / dh) * dh;
+
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.scale(zoom, zoom);
+    ctx.rotate(rotation);
+    ctx.translate(-position.x, -position.y);
+    for (let row = -2; row <= 2; row += 1) {
+      for (let column = -2; column <= 2; column += 1) {
+        ctx.drawImage(
+          background,
+          tileOriginX + column * dw - dw / 2,
+          tileOriginY + row * dh - dh / 2,
+          dw,
+          dh
+        );
+      }
+    }
+    ctx.restore();
     return;
   }
 
@@ -409,7 +453,7 @@ function drawSpace(
   }
 }
 
-function drawOrbits(
+export function drawOrbits(
   ctx: CanvasRenderingContext2D,
   center: { x: number; y: number },
   tilt: number,
@@ -417,7 +461,8 @@ function drawOrbits(
 ): void {
   ctx.save();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 0.7;
+  ctx.setLineDash([4, 7]);
 
   for (const planet of PLANETS) {
     ctx.beginPath();
@@ -429,7 +474,7 @@ function drawOrbits(
   ctx.restore();
 }
 
-function drawCometPath(
+export function drawCometPath(
   ctx: CanvasRenderingContext2D,
   center: { x: number; y: number },
   tilt: number,
@@ -445,7 +490,14 @@ function drawCometPath(
   ctx.restore();
 }
 
-function drawSun(ctx: CanvasRenderingContext2D, center: { x: number; y: number }, scale: number): void {
+export function drawSun(
+  ctx: CanvasRenderingContext2D,
+  center: { x: number; y: number },
+  scale: number,
+  rotation?: number,
+  axialTilt = 0,
+  rotationDirection: 1 | -1 = 1
+): void {
   const r = 34 * scale;
   const sunImg = getCachedImage('sun', skinType);
   const hasTexture = sunImg && sunImg.complete && sunImg.naturalWidth > 0;
@@ -461,7 +513,6 @@ function drawSun(ctx: CanvasRenderingContext2D, center: { x: number; y: number }
   ctx.fill();
 
   if (hasTexture) {
-    // 使用太阳贴图
     ctx.save();
     ctx.beginPath();
     ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
@@ -479,15 +530,27 @@ function drawSun(ctx: CanvasRenderingContext2D, center: { x: number; y: number }
     ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
     ctx.fill();
   }
+  if (rotation !== undefined) {
+    drawRotationArrow(
+      ctx,
+      center.x,
+      center.y,
+      r,
+      rotation,
+      axialTilt,
+      rotationDirection
+    );
+  }
 }
 
-function drawPlanet(
+export function drawPlanet(
   ctx: CanvasRenderingContext2D,
   planet: PlanetPreview,
   x: number,
   y: number,
   r: number,
-  drawState: { hovered: boolean; selected: boolean }
+  drawState: { hovered: boolean; selected: boolean },
+  rotationVisual: PlanetRotationVisual = {}
 ): void {
   // 选中/悬停高亮圈
   if (drawState.hovered || drawState.selected) {
@@ -501,12 +564,13 @@ function drawPlanet(
   // 尝试用贴图素材
   const img = getCachedImage(planet.id, skinType);
   const hasTexture = img && img.complete && img.naturalWidth > 0;
+  const rotation = rotationVisual.rotation ?? 0;
+  const axialTilt = rotationVisual.axialTilt ?? 0;
+  const rotationDirection = rotationVisual.rotationDirection ?? 1;
 
   if (hasTexture) {
-    // ✅ 使用素材贴图（纯净）
     ctx.save();
     if (planet.id === 'saturn') {
-      // 土星不裁剪，完整展示光环（横向稍宽容纳光环）
       ctx.drawImage(img, x - r * 1.8, y - r * 1.3, r * 3.6, r * 2.6);
     } else {
       ctx.beginPath();
@@ -518,7 +582,7 @@ function drawPlanet(
   } else {
     // ⚠️ 降级：无素材时用代码绘制（含手绘特征和光环）
     if (planet.id === 'saturn') {
-      drawSaturnRing(ctx, x, y, r);
+      drawSaturnRingBack(ctx, x, y, r, axialTilt);
     }
     const body = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
     body.addColorStop(0, '#ffffff');
@@ -528,15 +592,108 @@ function drawPlanet(
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
-    drawPlanetFeatures(ctx, planet, x, y, r); // 只有降级时才画手绘特征
+    drawPlanetFeatures(ctx, planet, x, y, r);
+    if (planet.id === 'saturn') {
+      drawSaturnRingFront(ctx, x, y, r, axialTilt);
+    }
   }
-  // 切换皮肤调试
-  if (planet.id === 'earth') {
-    console.log(`🌍 skinType=${skinType}, hasTexture=${hasTexture}`);
+
+  if (rotationVisual.rotation !== undefined) {
+    drawRotationArrow(
+      ctx,
+      x,
+      y,
+      r,
+      rotation,
+      axialTilt,
+      rotationDirection,
+      planet.id === 'saturn' ? 1.55 : 1.28
+    );
   }
 }
 
-function drawComet(
+function drawRotationArrow(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  rotation: number,
+  axialTilt: number,
+  direction: 1 | -1,
+  arrowScale = 1.28
+): void {
+  const axisLineAngle = normalizeAxisLineAngle(axialTilt);
+  const orbitRadiusX = r * arrowScale;
+  const orbitRadiusY = Math.max(3, r * 0.34);
+  const phase = normalizeTurn(rotation);
+  const arrowX = Math.cos(phase) * orbitRadiusX;
+  const arrowY = Math.sin(phase) * orbitRadiusY;
+  const tangentX = -Math.sin(phase) * orbitRadiusX * direction;
+  const tangentY = Math.cos(phase) * orbitRadiusY * direction;
+  const arrowAngle = Math.atan2(tangentY, tangentX);
+  const arrowSize = Math.max(3, r * 0.22);
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(axisLineAngle);
+  ctx.strokeStyle = 'rgba(247, 201, 72, 0.48)';
+  ctx.lineWidth = Math.max(1.2, r * 0.09);
+  ctx.beginPath();
+  ctx.ellipse(
+    0,
+    0,
+    orbitRadiusX,
+    orbitRadiusY,
+    0,
+    0,
+    Math.PI * 2
+  );
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255, 221, 105, 0.96)';
+  ctx.lineWidth = Math.max(2, r * 0.13);
+  const trailLength = direction * 1.15;
+  ctx.beginPath();
+  ctx.ellipse(
+    0,
+    0,
+    orbitRadiusX,
+    orbitRadiusY,
+    0,
+    phase - trailLength,
+    phase,
+    direction < 0
+  );
+  ctx.stroke();
+
+  ctx.translate(arrowX, arrowY);
+  ctx.rotate(arrowAngle);
+  ctx.beginPath();
+  ctx.moveTo(arrowSize, 0);
+  ctx.lineTo(-arrowSize * 0.72, -arrowSize * 0.58);
+  ctx.lineTo(-arrowSize * 0.72, arrowSize * 0.58);
+  ctx.closePath();
+  ctx.fillStyle = '#ffe47a';
+  ctx.shadowColor = 'rgba(247, 201, 72, 0.85)';
+  ctx.shadowBlur = Math.max(3, r * 0.25);
+  ctx.fill();
+  ctx.restore();
+}
+
+function normalizeAxisLineAngle(angle: number): number {
+  const halfTurn = Math.PI;
+  return (
+    ((angle + Math.PI / 2) % halfTurn + halfTurn) % halfTurn -
+    Math.PI / 2
+  );
+}
+
+function normalizeTurn(angle: number): number {
+  const fullTurn = Math.PI * 2;
+  return ((angle % fullTurn) + fullTurn) % fullTurn;
+}
+
+export function drawComet(
   ctx: CanvasRenderingContext2D,
   position: { x: number; y: number },
   r: number,
@@ -617,10 +774,6 @@ function drawPlanetFeatures(ctx: CanvasRenderingContext2D, planet: PlanetPreview
       drawStorm(ctx, x + r * 0.25, y - r * 0.2, r * 0.17);
       drawCloudBands(ctx, x, y, r, 'rgba(196, 221, 255, 0.28)');
       break;
-    case 'pluto':
-      drawCraters(ctx, x, y, r);
-      drawPlutoHeart(ctx, x, y, r);
-      break;
     default:
       break;
   }
@@ -628,17 +781,48 @@ function drawPlanetFeatures(ctx: CanvasRenderingContext2D, planet: PlanetPreview
   ctx.restore();
 }
 
-function drawSaturnRing(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
+export function drawSaturnRingBack(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  axialTilt = 0.466
+): void {
   ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-axialTilt);
   ctx.strokeStyle = 'rgba(248, 224, 166, 0.8)';
   ctx.lineWidth = Math.max(3, r * 0.18);
   ctx.beginPath();
-  ctx.ellipse(x, y, r * 1.75, r * 0.48, -0.28, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, r * 1.85, r * 0.48, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.36)';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.ellipse(x, y, r * 2.05, r * 0.58, -0.28, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, r * 2.08, r * 0.58, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+export function drawSaturnRingFront(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  axialTilt = 0.466
+): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-axialTilt);
+  ctx.strokeStyle = 'rgba(255, 224, 154, 0.92)';
+  ctx.lineWidth = Math.max(3, r * 0.2);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 1.85, r * 0.48, 0, 0, Math.PI);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 2.08, r * 0.58, 0, 0, Math.PI);
   ctx.stroke();
   ctx.restore();
 }
@@ -683,16 +867,6 @@ function drawMarsMarks(ctx: CanvasRenderingContext2D, x: number, y: number, r: n
   ctx.fill();
 }
 
-function drawPlutoHeart(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
-  ctx.fillStyle = 'rgba(255, 232, 205, 0.7)';
-  ctx.beginPath();
-  ctx.ellipse(x - r * 0.12, y - r * 0.05, r * 0.22, r * 0.18, -0.45, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(x + r * 0.12, y - r * 0.05, r * 0.22, r * 0.18, 0.45, 0, Math.PI * 2);
-  ctx.fill();
-}
-
 function drawGasBands(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, dark: string, light: string): void {
   for (let i = -3; i <= 3; i += 1) {
     ctx.fillStyle = i % 2 === 0 ? light : dark;
@@ -707,34 +881,47 @@ function drawStorm(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.fill();
 }
 
-function drawHint(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+export function drawHint(ctx: CanvasRenderingContext2D, width: number, height: number): void {
   ctx.fillStyle = 'rgba(196, 208, 232, 0.78)';
   ctx.font = '14px "PingFang SC", "Microsoft YaHei", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('点击一颗行星，看看它的小秘密', width * 0.48, Math.max(28, height - 28));
 }
 
-function getPlanetPosition(
+export function getPlanetPosition(
   planet: PlanetPreview,
   center: { x: number; y: number },
   tilt: number,
-  scale: number
+  scale: number,
+  angle = planet.angle
 ): { x: number; y: number } {
   const orbit = getCompressedOrbit(planet.distanceAU);
   return {
-    x: center.x + Math.cos(planet.angle) * orbit * scale,
-    y: center.y + Math.sin(planet.angle) * orbit * tilt * scale,
+    x: center.x + Math.cos(angle) * orbit * scale,
+    y: center.y + Math.sin(angle) * orbit * tilt * scale,
   };
 }
 
-function getCompressedOrbit(distanceAU: number): number {
-  return ORBIT_BASE + Math.sqrt(distanceAU) * ORBIT_SPACING;
+export function getCompressedOrbit(distanceAU: number): number {
+  return (
+    ORBIT_BASE +
+    Math.pow(Math.max(0, distanceAU), ORBIT_DISTANCE_EXPONENT) *
+      ORBIT_SPACING
+  );
 }
 
-function getResponsiveOrbitScale(width: number, height: number, tilt: number): number {
+export function getResponsiveOrbitScale(width: number, height: number, tilt: number): number {
   const horizontalFit = (width * 0.44) / MAX_ORBIT;
   const verticalFit = (height * 0.72) / (MAX_ORBIT * tilt);
-  return Math.min(1, Math.max(0.58, Math.min(horizontalFit, verticalFit)));
+  return Math.min(1, Math.max(0.36, Math.min(horizontalFit, verticalFit)));
+}
+
+/**
+ * 将真实地球半径比映射为可读的 Canvas 半径。
+ * 指数小于 1 是为了让类地行星仍可点击，同时保留巨行星的明显体积优势。
+ */
+export function getPhysicalDisplayRadius(radiusEarths: number): number {
+  return Math.max(3.5, 6 * Math.pow(Math.max(0, radiusEarths), 0.6));
 }
 
 function getCometPosition(
