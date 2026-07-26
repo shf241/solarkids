@@ -27,6 +27,7 @@ import {
 import {
   GAME_COORDINATE_SPAN,
   normalizeOrbitDrag,
+  shouldSaveOrbitAttempt,
 } from './member4SceneLogic.js';
 
 export interface OrbitGameSceneOptions {
@@ -109,7 +110,7 @@ export function createOrbitGameScene(
     runtimeContext.canvas.releasePointerCapture?.(event.pointerId);
     runtimeContext.canvas.style.cursor = 'grab';
 
-    if (!resultSaved) {
+    if (shouldSaveOrbitAttempt(state.completed, resultSaved)) {
       const saved = saveOrbitGameResult(state, options.store);
       resultSaved = true;
       if (saved.result.success) {

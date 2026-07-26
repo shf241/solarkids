@@ -4,6 +4,7 @@ import {
   normalizeOrbitDrag,
   advanceSolarWindParticle,
   createSolarWindParticles,
+  shouldSaveOrbitAttempt,
 } from '../src/canvas/scenes/member4SceneLogic.ts';
 import { calculateChangeLevel } from '../src/game/index.ts';
 
@@ -86,5 +87,11 @@ describe('member 4 Canvas scene logic', () => {
     expect(calculateChangeLevel(Math.hypot(desktop.x, desktop.y))).toBe(
       calculateChangeLevel(Math.hypot(mobile.x, mobile.y)),
     );
+  });
+
+  it('M4-C-07 saves only the first completed orbit attempt', () => {
+    expect(shouldSaveOrbitAttempt(false, false)).toBe(false);
+    expect(shouldSaveOrbitAttempt(true, false)).toBe(true);
+    expect(shouldSaveOrbitAttempt(true, true)).toBe(false);
   });
 });

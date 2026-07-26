@@ -53,3 +53,10 @@ export function normalizeOrbitDrag(
     y: (target.y - start.y) * scale,
   };
 }
+
+export function shouldSaveOrbitAttempt(
+  completed: boolean,
+  resultSaved: boolean,
+): boolean {
+  return completed && !resultSaved;
+}
