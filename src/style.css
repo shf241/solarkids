@@ -645,16 +645,14 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   #control-bar {
-    justify-content: flex-start;
-    flex-wrap: nowrap;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 4px;
     padding: 4px max(8px, env(safe-area-inset-right))
       max(4px, env(safe-area-inset-bottom))
       max(8px, env(safe-area-inset-left));
     min-height: 48px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
+    overflow-x: hidden;
   }
 
   .control-group {
@@ -662,8 +660,24 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0 2px;
   }
 
+  .control-group--experiences {
+    flex-basis: 100%;
+    order: 1;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .control-group:first-child,
+  .control-group:last-child {
+    order: 2;
+  }
+
+  .control-group:nth-child(2) {
+    order: 3;
+  }
+
   .control-group--experiences .btn {
-    padding-inline: 0.6rem;
+    padding-inline: 0;
   }
 
   .canvas-view-status {
@@ -686,9 +700,22 @@ input[type="range"]::-webkit-slider-thumb {
     height: 40px;
   }
 
+  .btn--ghost {
+    width: 40px;
+    padding: 0;
+  }
+
+  .btn--ghost [data-i18n] {
+    display: none;
+  }
+
   .control-icon {
     width: 23px;
     height: 23px;
+  }
+
+  input[type="range"] {
+    width: 64px;
   }
 
   /* 侧边栏信息简化 */
@@ -703,8 +730,20 @@ input[type="range"]::-webkit-slider-thumb {
     border-radius: var(--radius-lg);
   }
 
+  .toast {
+    bottom: calc(149px + env(safe-area-inset-bottom));
+    max-width: calc(100% - 24px);
+    text-align: center;
+  }
+
   /* 隐藏次要文字 */
   .control-group__label {
+    display: none;
+  }
+}
+
+@media (max-width: 359px) {
+  #speed-slider {
     display: none;
   }
 }

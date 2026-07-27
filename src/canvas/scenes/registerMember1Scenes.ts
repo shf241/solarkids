@@ -5,6 +5,7 @@ import { createMagneticScene } from './magneticScene.js';
 
 export interface Member1SceneOptions {
   getSkinType: () => SkinType;
+  translate: (key: string) => string;
 }
 
 /**

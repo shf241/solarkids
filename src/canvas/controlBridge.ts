@@ -43,6 +43,8 @@ export function bindCanvasControlEvents(
     switchIfRegistered(runtime, 'magnetic');
   const onShowSolarRain: EventListener = () =>
     switchIfRegistered(runtime, 'solar-rain');
+  const onShowOrbitGame: EventListener = () =>
+    switchIfRegistered(runtime, 'orbit-game');
   const onSkinChange: EventListener = event => {
     runtime.events.emit(
       'skinChange',
@@ -60,6 +62,7 @@ export function bindCanvasControlEvents(
     ['solarkids:showComet', onShowComet],
     ['solarkids:showMagnetic', onShowMagnetic],
     ['solarkids:showSolarRain', onShowSolarRain],
+    ['solarkids:showOrbitGame', onShowOrbitGame],
     ['solarkids:skinChange', onSkinChange],
   ];
 

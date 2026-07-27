@@ -25,6 +25,7 @@ const EARTH_ACCENT = '#58d8ff';
 
 export interface MagneticSceneOptions {
   getSkinType: () => SkinType;
+  translate: (key: string) => string;
 }
 
 export function createMagneticScene(options: MagneticSceneOptions): CanvasScene {
@@ -82,7 +83,8 @@ export function createMagneticScene(options: MagneticSceneOptions): CanvasScene 
     render(_frame, context) {
       const { width, height } = context.getViewport();
       const skinType = options.getSkinType();
-      buttons = createMagneticButtons(width);
+      const translate = options.translate;
+      buttons = createMagneticButtons(width, translate);
       drawSpaceBackdrop(
         context.context2D,
         width,
@@ -93,8 +95,8 @@ export function createMagneticScene(options: MagneticSceneOptions): CanvasScene 
       drawSceneHeader(
         context.context2D,
         width,
-        '太阳与地球磁场实验室',
-        '跟随发光粒子认识看不见的磁力线和地球磁场屏障',
+        translate('scene.magnetic.title'),
+        translate('scene.magnetic.description'),
         EARTH_ACCENT
       );
       drawToolbar(
@@ -110,7 +112,8 @@ export function createMagneticScene(options: MagneticSceneOptions): CanvasScene 
           width,
           height,
           elapsedSeconds,
-          skinType
+          skinType,
+          translate
         );
       } else if (mode === 'earth-field') {
         drawEarthFieldFocus(
@@ -118,7 +121,8 @@ export function createMagneticScene(options: MagneticSceneOptions): CanvasScene 
           width,
           height,
           elapsedSeconds,
-          skinType
+          skinType,
+          translate
         );
       } else {
         drawComparison(
@@ -126,7 +130,8 @@ export function createMagneticScene(options: MagneticSceneOptions): CanvasScene 
           width,
           height,
           elapsedSeconds,
-          skinType
+          skinType,
+          translate
         );
       }
     },
@@ -148,13 +153,16 @@ export function createMagneticScene(options: MagneticSceneOptions): CanvasScene 
   };
 }
 
-function createMagneticButtons(width: number): SceneButton[] {
+function createMagneticButtons(
+  width: number,
+  translate: (key: string) => string,
+): SceneButton[] {
   return createToolbarButtons(
     width,
     [
-      { id: 'compare', label: '磁场对比' },
-      { id: 'sun-field', label: '太阳磁场' },
-      { id: 'earth-field', label: '地球磁场' },
+      { id: 'compare', label: translate('magnetic.mode.compare') },
+      { id: 'sun-field', label: translate('magnetic.mode.sun') },
+      { id: 'earth-field', label: translate('magnetic.mode.earth') },
     ],
     78
   );
@@ -165,7 +173,8 @@ function drawComparison(
   width: number,
   height: number,
   elapsed: number,
-  skinType: SkinType
+  skinType: SkinType,
+  translate: (key: string) => string,
 ): void {
   const compact = width < 620;
   const centerY = (compact ? 118 : 132) + (height - (compact ? 180 : 205)) * 0.48;
@@ -188,19 +197,19 @@ function drawComparison(
   drawPoles(ctx, sun, sun.radius, SUN_ACCENT);
   drawPoles(ctx, earth, earth.radius, EARTH_ACCENT);
 
-  drawBodyLabel(ctx, '太阳', sun.x, sun.y + sun.radius + 12);
-  drawBodyLabel(ctx, '地球', earth.x, earth.y + earth.radius + 12);
+  drawBodyLabel(ctx, translate('solarWind.sun'), sun.x, sun.y + sun.radius + 12);
+  drawBodyLabel(ctx, translate('solarWind.earth'), earth.x, earth.y + earth.radius + 12);
   drawInfoChip(
     ctx,
-    '太阳磁场更巨大，地球磁场像保护伞',
+    translate('magnetic.compare.chip'),
     compact ? 14 : 28,
     height - (compact ? 86 : 102),
     EARTH_ACCENT
   );
   drawLegend(ctx, width, compact ? 126 : 142, [
-    { color: SUN_ACCENT, text: '太阳磁力线' },
-    { color: EARTH_ACCENT, text: '地球磁力线' },
-    { color: '#d9f3ff', text: '太阳风粒子' },
+    { color: SUN_ACCENT, text: translate('magnetic.legend.sun') },
+    { color: EARTH_ACCENT, text: translate('magnetic.legend.earth') },
+    { color: '#d9f3ff', text: translate('magnetic.legend.wind') },
   ]);
 }
 
@@ -209,7 +218,8 @@ function drawSunFieldFocus(
   width: number,
   height: number,
   elapsed: number,
-  skinType: SkinType
+  skinType: SkinType,
+  translate: (key: string) => string,
 ): void {
   const compact = width < 620;
   const center = {
@@ -230,24 +240,33 @@ function drawSunFieldFocus(
   );
   drawSunBody(ctx, center.x, center.y, radius, elapsed, skinType);
   drawPoles(ctx, center, radius, SUN_ACCENT);
-  drawBodyLabel(ctx, '太阳磁场', center.x, center.y + radius + 16);
+  drawBodyLabel(ctx, translate('magnetic.sun.label'), center.x, center.y + radius + 16);
 
   drawInfoPanel(
     ctx,
     compact ? 14 : 28,
     compact ? 122 : 140,
     compact ? width - 28 : Math.min(270, width * 0.3),
-    '太阳磁场',
+    translate('magnetic.sun.title'),
     [
-      '磁力线从一个区域伸出，再回到另一个区域。',
-      '太阳活动增强时，磁场会扭曲并释放带电粒子。',
-      `当前活动等级：${activity > 0.68 ? '活跃' : activity > 0.34 ? '平稳' : '较弱'}`,
+      translate('magnetic.sun.fact1'),
+      translate('magnetic.sun.fact2'),
+      translate('magnetic.sun.activity').replace(
+        '{value}',
+        translate(
+          activity > 0.68
+            ? 'magnetic.activity.active'
+            : activity > 0.34
+              ? 'magnetic.activity.steady'
+              : 'magnetic.activity.weak',
+        ),
+      ),
     ],
     SUN_ACCENT
   );
   drawInfoChip(
     ctx,
-    '发光粒子沿磁力线移动',
+    translate('magnetic.sun.chip'),
     compact ? 14 : width - 220,
     height - (compact ? 86 : 102),
     SUN_ACCENT
@@ -259,7 +278,8 @@ function drawEarthFieldFocus(
   width: number,
   height: number,
   elapsed: number,
-  skinType: SkinType
+  skinType: SkinType,
+  translate: (key: string) => string,
 ): void {
   const compact = width < 620;
   const center = {
@@ -272,24 +292,24 @@ function drawEarthFieldFocus(
   drawDipoleField(ctx, center, radius, EARTH_ACCENT, elapsed, 1.2, 1.75);
   drawEarthBody(ctx, center.x, center.y, radius, skinType);
   drawPoles(ctx, center, radius, EARTH_ACCENT);
-  drawBodyLabel(ctx, '地球磁场', center.x, center.y + radius + 16);
+  drawBodyLabel(ctx, translate('magnetic.earth.label'), center.x, center.y + radius + 16);
 
   drawInfoPanel(
     ctx,
     compact ? 14 : 28,
     compact ? 122 : 140,
     compact ? width - 28 : Math.min(282, width * 0.32),
-    '地球的磁场保护罩',
+    translate('magnetic.earth.title'),
     [
-      '地球内部运动产生了一个巨大的磁场。',
-      '磁场会让许多太阳风粒子绕开地球。',
-      '靠近南北极的粒子可能形成美丽的极光。',
+      translate('magnetic.earth.fact1'),
+      translate('magnetic.earth.fact2'),
+      translate('magnetic.earth.fact3'),
     ],
     EARTH_ACCENT
   );
   drawInfoChip(
     ctx,
-    'N 北磁极 · S 南磁极',
+    translate('magnetic.earth.poles'),
     compact ? 14 : width - 205,
     height - (compact ? 86 : 102),
     EARTH_ACCENT

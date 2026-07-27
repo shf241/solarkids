@@ -126,7 +126,7 @@ runtime.scenes.register(scene);
 runtime.scenes.switchTo('solar-system');
 ```
 
-底部入口将“太阳系总览”“地表视角”“日食/月食”“彗星”“磁场”“太阳雨”并列显示，并统一使用 `aria-pressed` 表示选中状态；任意时刻只有一个入口高亮。当前 `solar-system`、`eclipse`、`comet` 和 `magnetic` 场景均已注册；太阳雨仍为预留入口。按钮请求尚未注册的场景时不会报错，对应模块注册完成后可直接复用现有 UI 事件。
+底部入口将“太阳系总览”“地表视角”“日食/月食”“彗星”“磁场”“太阳雨”“轨道小游戏”并列显示，并统一使用 `aria-pressed` 表示选中状态；任意时刻只有一个入口高亮。当前 `solar-system`、`eclipse`、`comet`、`magnetic`、`solar-rain` 和 `orbit-game` 场景均已注册。
 
 各入口使用的 DOM 事件和目标如下：
 
@@ -137,9 +137,12 @@ runtime.scenes.switchTo('solar-system');
 | 日食/月食 | `solarkids:showEclipse` | `eclipse` 场景 |
 | 彗星 | `solarkids:showComet` | `comet` 场景 |
 | 磁场 | `solarkids:showMagnetic` | `magnetic` 场景 |
-| 太阳雨 | `solarkids:showSolarRain` | 预留的 `solar-rain` 场景 |
+| 太阳雨 | `solarkids:showSolarRain` | `solar-rain` 场景 |
+| 轨道小游戏 | `solarkids:showOrbitGame` | `orbit-game` 场景 |
 
-“太阳雨”当前仅完成入口和事件桥接，不注册场景、不包含粒子或物理动画。后续实现只需注册 `id: 'solar-rain'` 的 `CanvasScene`，无需再次修改控制栏协议。
+“太阳雨”入口协议由成员3定义，成员4的太阳风教学动画按该协议注册为
+`id: 'solar-rain'`。入口名称、DOM 事件和场景 ID 均不再使用旧的
+`btn-solar-wind`、`solarkids:showSolarWind` 或 `solar-wind` 场景协议。
 
 成员1的 `eclipse` 与 `magnetic` 场景及其 `sceneVisuals` 保持 `dev` 原实现，继续使用 `SkinType = 'svg' | 'png'`：卡通专题素材来自 `assets/svg`，写实专题素材来自 `assets/images`。成员3球面渲染使用独立的 `RenderSkinType = 'cartoon' | 'realistic'` 和 `assets/cartoon_skin`、`assets/skins`。共享加载器分别缓存两类素材，`main.ts` 只负责模式映射，两边不互相覆盖。
 
@@ -151,7 +154,7 @@ runtime.scenes.switchTo('solar-system');
 import type { CanvasLayer } from '../canvas/index.js';
 
 const solarWindLayer: CanvasLayer = {
-  id: 'solar-wind',
+  id: 'solar-wind-overlay',
   order: 20,
 
   update(frame, context) {
@@ -170,7 +173,7 @@ const solarWindLayer: CanvasLayer = {
 };
 
 const removeLayer = runtime.layers.register(solarWindLayer);
-runtime.layers.setEnabled('solar-wind', true);
+runtime.layers.setEnabled('solar-wind-overlay', true);
 
 // 不再使用时：
 removeLayer();

@@ -10,7 +10,8 @@ import { getSkinList, clearAssetCache } from './assetLoader.js';
 /** 弹出换肤选择面板 */
 export function showSkinPicker(
   config: SkinsData,
-  onSwitch: (skinId: string, skinConfig: SkinConfig) => void
+  onSwitch: (skinId: string, skinConfig: SkinConfig) => void,
+  translate: (key: string) => string = key => key
 ): void {
   const currentId = config.activeSkin;
   const skins = getSkinList(config);
@@ -23,8 +24,8 @@ export function showSkinPicker(
         <div class="skin-card__preview">
           ${getSkinPreviewEmoji(s.id)}
         </div>
-        <div class="skin-card__name">${s.name}</div>
-        ${s.id === currentId ? '<span class="badge">当前</span>' : ''}
+        <div class="skin-card__name">${translate(`skin.${s.id}.name`)}</div>
+        ${s.id === currentId ? `<span class="badge">${translate('skin.current')}</span>` : ''}
       </div>`
     )
     .join('');
@@ -32,16 +33,16 @@ export function showSkinPicker(
   const content = `
     <div class="skin-picker">
       <p class="tooltip" style="margin-bottom:var(--space-md)">
-        选择一套皮肤，太阳系会立刻换上新装 ✨
+        ${translate('skin.instruction')}
       </p>
       <div class="skin-picker__grid">${skinCards}</div>
       <p class="tooltip" style="margin-top:var(--space-md)">
-        💡 两种模式共享球面动画，只替换天体、光环和星空纹理
+        ${translate('skin.detail')}
       </p>
     </div>
   `;
 
-  const modal = showModal('🎨 天体换肤', content);
+  const modal = showModal(`🎨 ${translate('skin.title')}`, content);
 
   // 绑定点击事件
   modal.querySelectorAll('.skin-card').forEach(card => {
@@ -65,8 +66,10 @@ export function showSkinPicker(
         if (id === skinId && !badge) {
           const b = document.createElement('span');
           b.className = 'badge';
-          b.textContent = '当前';
+          b.textContent = translate('skin.current');
           c.appendChild(b);
+        } else if (id !== skinId) {
+          badge?.remove();
         }
       });
     });

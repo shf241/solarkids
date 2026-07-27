@@ -10,6 +10,7 @@ import {
   setPanelSkinType,
   updatePanel,
   bindControls,
+  type PlanetInfo,
 } from './ui/index.js';
 import {
   loadSkinsConfig,
@@ -29,16 +30,24 @@ import {
 import { createCometScene } from './canvas/cometScene.js';
 import { createSolarSystemScene } from './canvas/solarSystemScene.js';
 import { registerMember1Scenes } from './canvas/scenes/registerMember1Scenes.js';
+import { registerMember4Scenes } from './canvas/scenes/registerMember4Scenes.js';
+import {
+  createMember4Integration,
+  type Member4Integration,
+} from './integration/index.js';
 
 // ---- 全局状态 ----
 
 let skinsConfig: SkinsData | null = null;
 let currentSkinType: RenderSkinType = 'cartoon';
+let currentPanelInfo: PlanetInfo | null = null;
+let member4: Member4Integration | null = null;
 let canvasRuntime: CanvasRuntime | null = null;
 let canvasInteractions: CanvasInteractionController | null = null;
 let unbindCanvasControls: (() => void) | null = null;
 let unbindAnimationStatus: (() => void) | null = null;
 let unregisterMember1Scenes: (() => void) | null = null;
+let unregisterMember4Scenes: (() => void) | null = null;
 let unbindSceneSync: (() => void) | null = null;
 
 type ExperienceId =
@@ -47,7 +56,8 @@ type ExperienceId =
   | 'eclipse'
   | 'comet'
   | 'magnetic'
-  | 'solar-rain';
+  | 'solar-rain'
+  | 'orbit-game';
 
 const EXPERIENCE_BUTTONS: ReadonlyArray<readonly [string, ExperienceId]> = [
   ['btn-view-overview', 'overview'],
@@ -56,6 +66,7 @@ const EXPERIENCE_BUTTONS: ReadonlyArray<readonly [string, ExperienceId]> = [
   ['btn-comet', 'comet'],
   ['btn-magnetic', 'magnetic'],
   ['btn-solar-rain', 'solar-rain'],
+  ['btn-orbit-game', 'orbit-game'],
 ];
 
 // ---- 应用启动 ----
@@ -67,9 +78,18 @@ async function init(): Promise<void> {
   // 注入换肤面板的额外样式
   injectSkinStyles();
 
+  member4 = await createMember4Integration();
+  member4.applyDocumentLanguage();
+
   // 加载皮肤配置
   try {
     skinsConfig = await loadSkinsConfig();
+    const savedSkinId = member4.getState().skinId;
+    if (skinsConfig.skins[savedSkinId]) {
+      skinsConfig.activeSkin = savedSkinId;
+    } else {
+      member4.store.setSkin(skinsConfig.activeSkin);
+    }
     console.log(`🎨 当前皮肤: ${skinsConfig.skins[skinsConfig.activeSkin].name}`);
 
     // 预加载当前皮肤素材（失败会自动降级为占位图）
@@ -92,17 +112,18 @@ async function init(): Promise<void> {
   // 监听设备切换
   onDeviceChange(type => {
     console.log(`📱 设备切换为: ${type}`);
-    showToast(`已切换为${type === 'mobile' ? '手机' : type === 'tablet' ? '平板' : '电脑'}布局`);
+    showToast(
+      member4?.getLanguage() === 'en'
+        ? `Layout changed to ${type}`
+        : `已切换为${type === 'mobile' ? '手机' : type === 'tablet' ? '平板' : '电脑'}布局`
+    );
   });
 
   // 初始化 Canvas（成员3负责填充）
   initCanvas();
 
-  // 初始化存储（成员4负责填充）
-  initStorage();
-
   console.log('✅ SolarKids 启动完成');
-  showToast('🌍 欢迎来到 SolarKids！点击行星开始探索吧');
+  showToast(`🌍 ${translate('toast.welcome')}`);
 }
 
 // ---- 控制栏绑定 ----
@@ -113,7 +134,11 @@ function bindControlBar(): void {
       const btn = el as HTMLButtonElement;
       const isPlaying = btn.getAttribute('aria-pressed') !== 'true';
       setPlayButtonState(isPlaying);
-      showToast(isPlaying ? '▶️ 已播放' : '⏸️ 已暂停');
+      showToast(
+        isPlaying
+          ? `▶️ ${translate('toast.play')}`
+          : `⏸️ ${translate('toast.pause')}`
+      );
       document.dispatchEvent(new CustomEvent('solarkids:togglePlay'));
     },
 
@@ -135,24 +160,24 @@ function bindControlBar(): void {
 
     'btn-zoom-in': () => {
       document.dispatchEvent(new CustomEvent('solarkids:zoom', { detail: { delta: 1.2 } }));
-      showToast('🔍 放大');
+      showToast(`🔍 ${translate('toast.zoomIn')}`);
     },
 
     'btn-zoom-out': () => {
       document.dispatchEvent(new CustomEvent('solarkids:zoom', { detail: { delta: 0.8 } }));
-      showToast('🔎 缩小');
+      showToast(`🔎 ${translate('toast.zoomOut')}`);
     },
 
     'btn-reset-view': () => {
       document.dispatchEvent(new CustomEvent('solarkids:resetView'));
-      showToast('🏠 视角已重置');
+      showToast(`🏠 ${translate('toast.resetView')}`);
     },
 
     'btn-view-overview': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showOverview'));
       canvasInteractions?.showOverview();
       setActiveExperience('overview');
-      showToast('🌌 已切换到太阳系总览');
+      showToast(`🌌 ${translate('toast.overview')}`);
     },
 
     'btn-view-earth': () => {
@@ -170,8 +195,8 @@ function bindControlBar(): void {
       if (switched) setActiveExperience('earth-first-person');
       showToast(
         switched
-          ? '🌍 已站在地球表面观察天空'
-          : '地表视角仅在太阳系总览中可用'
+          ? `🌍 ${translate('toast.earthView')}`
+          : translate('toast.earthViewUnavailable')
       );
     },
 
@@ -184,41 +209,52 @@ function bindControlBar(): void {
           detail: { visible },
         })
       );
-      showToast(visible ? '🪐 已显示轨道' : '🪐 已隐藏轨道');
+      showToast(
+        visible
+          ? `🪐 ${translate('toast.orbitsShown')}`
+          : `🪐 ${translate('toast.orbitsHidden')}`
+      );
     },
 
     'btn-eclipse': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showEclipse'));
       setActiveExperience('eclipse');
-      showToast('🌑 日食/月食模拟');
+      showToast(`🌑 ${translate('nav.eclipse')}`);
     },
 
     'btn-comet': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showComet'));
       setActiveExperience('comet');
-      showToast('☄️ 哈雷彗星模拟');
+      showToast(`☄️ ${translate('nav.comet')}`);
     },
 
     'btn-magnetic': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showMagnetic'));
       setActiveExperience('magnetic');
-      showToast('🧲 磁场演示');
+      showToast(`🧲 ${translate('nav.magnetic')}`);
     },
 
     'btn-solar-rain': () => {
       document.dispatchEvent(new CustomEvent('solarkids:showSolarRain'));
       setActiveExperience('solar-rain');
-      showToast('🌧️ 太阳雨入口已预留，现象动画待实现');
+      showToast(`🌧️ ${translate('nav.solarRain')}`);
+    },
+
+    'btn-orbit-game': () => {
+      document.dispatchEvent(new CustomEvent('solarkids:showOrbitGame'));
+      setActiveExperience('orbit-game');
+      showToast(`🎯 ${translate('nav.game')}`);
     },
 
     'btn-skin': () => {
       if (skinsConfig) {
         showSkinPicker(skinsConfig, async (skinId, skinConfig) => {
           console.log(`🎨 切换皮肤: ${skinConfig.name}`);
-          showToast(`已切换为 ${skinConfig.name}`);
+          showToast(`🎨 ${translate('toast.skinChanged')}`);
 
           // 预加载新皮肤素材
           skinsConfig!.activeSkin = skinId;
+          member4?.store.setSkin(skinId);
           await preloadAllAssets(skinsConfig!);
           currentSkinType = skinConfig.type;
           setSkinType(currentSkinType);
@@ -232,13 +268,17 @@ function bindControlBar(): void {
             })
           );
           canvasRuntime?.renderOnce();
-        });
+        }, translate);
       }
     },
 
     'btn-lang': () => {
-      // TODO: 成员4 填充多语言切换
-      showToast('🌐 语言切换（待成员4实现）');
+      member4?.toggleLanguage();
+      member4?.applyDocumentLanguage();
+      renderPanel(currentPanelInfo);
+      applyCanvasLanguage();
+      canvasRuntime?.renderOnce();
+      showToast(`🌐 ${translate('toast.languageChanged')}`);
     },
 
     'btn-help': () => {
@@ -280,21 +320,19 @@ function showHelpModal(): void {
   // 使用动态 import 避免循环依赖
   import('./ui/index.js').then(({ showModal }) => {
     showModal(
-      '❓ 操作帮助',
+      `❓ ${translate('help.title')}`,
       `
       <div style="line-height:2;">
-        <p><b>🖱️ 鼠标/单指拖拽</b> — 在总览中旋转太阳系</p>
-        <p><b>⇧ Shift + 鼠标拖拽</b> — 平移画面</p>
-        <p><b>🖱️ 滚轮</b> — 以指针位置为中心缩放</p>
-        <p><b>🤏 双指手势</b> — 平移和缩放</p>
-        <p><b>👆 点击天体</b> — 查看详情</p>
-        <p><b>🌌 太阳系总览/地表视角</b> — 切换太阳系与地表观察</p>
-        <p><b>🖱️ 地表视角拖拽</b> — 环顾天空，滚轮调整视野</p>
-        <p><b>⌨️ 键盘</b> — 方向键平移，+/- 缩放，0/E 切换视角</p>
-        <p><b>▶️ 播放/暂停</b> — 控制动画</p>
-        <p><b>⏩ 速度滑块</b> — 调整运行速度</p>
-        <p><b>🎨 换肤按钮</b> — 切换卡通/写实模式</p>
-        <p><b>🌐 语言按钮</b> — 中英文切换</p>
+        <p>🖱️ ${translate('help.drag')}</p>
+        <p>⇧ ${translate('help.pan')}</p>
+        <p>🔍 ${translate('help.zoom')}</p>
+        <p>🤏 ${translate('help.gesture')}</p>
+        <p>👆 ${translate('help.planet')}</p>
+        <p>🌌 ${translate('help.view')}</p>
+        <p>⌨️ ${translate('help.keyboard')}</p>
+        <p>▶️ ${translate('help.play')}</p>
+        <p>🎨 ${translate('help.skin')}</p>
+        <p>🌐 ${translate('help.language')}</p>
       </div>
       `
     );
@@ -325,7 +363,14 @@ function initCanvas(): void {
   // 注册成员1专题与成员3场景；所有动画由公共运行时统一调度。
   unregisterMember1Scenes?.();
   unregisterMember1Scenes = registerMember1Scenes(canvasRuntime, {
-    getSkinType: () => (currentSkinType === 'realistic' ? 'png' : 'svg'),
+    getSkinType: getTopicSkinType,
+    translate,
+  });
+  unregisterMember4Scenes?.();
+  unregisterMember4Scenes = registerMember4Scenes(canvasRuntime, {
+    getSkinType: getTopicSkinType,
+    store: member4!.store,
+    translate,
   });
 
   unbindCanvasControls?.();
@@ -335,19 +380,21 @@ function initCanvas(): void {
     setPlayButtonState(status === 'running');
   });
   canvasRuntime.scenes.register(
-    createSolarSystemScene({ updatePanel, showToast })
+    createSolarSystemScene({ updatePanel: renderPanel, showToast, translate })
   );
   canvasRuntime.scenes.register(
-    createCometScene({ updatePanel, showToast })
+    createCometScene({ updatePanel: renderPanel, showToast, translate })
   );
   canvasRuntime.scenes.switchTo('solar-system');
   canvasInteractions?.dispose();
   canvasInteractions = new CanvasInteractionController(canvasRuntime, {
     onViewChange: updateViewControls,
   });
+  applyCanvasLanguage();
 
   unbindSceneSync?.();
   unbindSceneSync = canvasRuntime.scenes.onChange(({ sceneId }) => {
+    setViewStatusVisibility(sceneId === 'solar-system');
     if (isExperienceId(sceneId)) {
       setActiveExperience(sceneId);
     }
@@ -357,7 +404,14 @@ function initCanvas(): void {
   const redrawSceneAssets = (): void => {
     canvasRuntime?.renderOnce();
   };
+  const recordSelectedBody: EventListener = event => {
+    const bodyId = (
+      event as CustomEvent<{ bodyId?: string }>
+    ).detail?.bodyId;
+    if (bodyId) member4?.store.markPlanetVisited(bodyId);
+  };
   document.addEventListener('solarkids:sceneAssetReady', redrawSceneAssets);
+  document.addEventListener('solarkids:bodySelected', recordSelectedBody);
 
   window.addEventListener(
     'beforeunload',
@@ -370,12 +424,18 @@ function initCanvas(): void {
         'solarkids:sceneAssetReady',
         redrawSceneAssets
       );
+      document.removeEventListener(
+        'solarkids:bodySelected',
+        recordSelectedBody
+      );
       unbindSceneSync?.();
       unbindSceneSync = null;
       unbindCanvasControls?.();
       unbindCanvasControls = null;
       unregisterMember1Scenes?.();
       unregisterMember1Scenes = null;
+      unregisterMember4Scenes?.();
+      unregisterMember4Scenes = null;
       canvasRuntime?.dispose();
       canvasRuntime = null;
     },
@@ -385,13 +445,13 @@ function initCanvas(): void {
 
 function updateViewControls(view: Readonly<CanvasViewState>): void {
   const labels: Record<string, string> = {
-    overview: '太阳系总览',
-    focus: `聚焦 · ${getBodyLabel(view.focusTargetId)}`,
-    'earth-first-person': '地球地表观察',
+    overview: translate('view.overview'),
+    focus: `${translate('view.focus')} · ${getBodyLabel(view.focusTargetId)}`,
+    'earth-first-person': translate('view.earthFirstPerson'),
   };
   const status = document.getElementById('canvas-view-status');
   if (status) {
-    status.textContent = `视角：${labels[view.mode]}`;
+    status.textContent = `${translate('view.label')}：${labels[view.mode]}`;
   }
 
   const sceneId = canvasRuntime?.scenes.activeSceneId;
@@ -419,26 +479,22 @@ function isExperienceId(value: string | null | undefined): value is ExperienceId
 }
 
 function getBodyLabel(bodyId: string | null): string {
-  const labels: Record<string, string> = {
-    sun: '太阳',
-    mercury: '水星',
-    venus: '金星',
-    earth: '地球',
-    moon: '月球',
-    mars: '火星',
-    jupiter: '木星',
-    saturn: '土星',
-    uranus: '天王星',
-    neptune: '海王星',
-    comet: '哈雷彗星',
-  };
-  return bodyId ? labels[bodyId] ?? bodyId : '天体';
+  if (!bodyId) return translate('body.celestial');
+  if (bodyId === 'comet') return translate('body.comet');
+  const key = `planet.${bodyId}.name`;
+  const translated = translate(key);
+  return translated === key ? bodyId : translated;
+}
+
+function setViewStatusVisibility(visible: boolean): void {
+  const status = document.getElementById('canvas-view-status');
+  if (status) status.hidden = !visible;
 }
 
 function updateTopicPanel(sceneId: string | null): void {
   if (sceneId === 'eclipse') {
-    updatePanel({
-      id: 'eclipse',
+    renderPanel({
+      id: 'scene.eclipse',
       name: 'Eclipse Lab',
       nameCN: '日食与月食实验室',
       emoji: '🌑',
@@ -449,8 +505,8 @@ function updateTopicPanel(sceneId: string | null): void {
       ],
     });
   } else if (sceneId === 'magnetic') {
-    updatePanel({
-      id: 'magnetic',
+    renderPanel({
+      id: 'scene.magnetic',
       name: 'Magnetic Field Lab',
       nameCN: '太阳与地球磁场',
       emoji: '🧲',
@@ -460,14 +516,50 @@ function updateTopicPanel(sceneId: string | null): void {
         { label: '快捷键', value: '1 / 2 / 3' },
       ],
     });
+  } else if (sceneId === 'solar-rain') {
+    renderPanel({
+      id: 'scene.solar-rain',
+      name: 'Solar Wind Lab',
+      nameCN: '太阳风实验室',
+      emoji: '☀️',
+      desc: '观察太阳风从太阳向外传播，以及地球磁场如何改变带电粒子的路线。',
+      stats: [
+        { label: '三种观察', value: '辐射 / 屏障 / 极光' },
+        { label: '关键概念', value: '带电粒子与磁层' },
+      ],
+    });
+  } else if (sceneId === 'orbit-game') {
+    renderPanel({
+      id: 'scene.orbit-game',
+      name: 'Orbit Explorer Game',
+      nameCN: '轨道探索小游戏',
+      emoji: '🎯',
+      desc: '拖动地球，观察它与原轨道之间的变化。',
+      stats: [
+        { label: '目标', value: '拖出明显变化' },
+        { label: '最高分', value: '100' },
+      ],
+    });
   }
 }
 
-// ---- 存储占位（成员4：数据存储负责人） ----
+function renderPanel(info: PlanetInfo | null): void {
+  currentPanelInfo = info;
+  updatePanel(member4?.localizeInfo(info) ?? info);
+}
 
-function initStorage(): void {
-  // TODO: 成员4 填充 LocalStorage 模块
-  // 建议调用: import { initStorage } from './storage/index';
+function translate(key: string): string {
+  return member4?.translate(key) ?? key;
+}
+
+function getTopicSkinType(): 'svg' | 'png' {
+  return currentSkinType === 'realistic' ? 'png' : 'svg';
+}
+
+function applyCanvasLanguage(): void {
+  const canvas = document.getElementById('main-canvas');
+  canvas?.setAttribute('aria-label', translate('canvas.ariaLabel'));
+  if (canvasInteractions) updateViewControls(canvasInteractions.view);
 }
 
 // ---- 启动 ----
