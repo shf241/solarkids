@@ -78,4 +78,5 @@ npm run build
 - `src/game/index.ts`：轨道拖动小游戏的纯逻辑。
 - `src/data/language.json`：界面与八大行星双语内容。
 
-具体接入方式见 `docs/成员4模块对接说明.md`。
+成员4的职责、实现接口、AI协作过程和验收证据统一见
+[`docs/AI开发说明_成员4.md`](./docs/AI开发说明_成员4.md)。
