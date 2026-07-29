@@ -1,118 +1,136 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  calculateChangeLevel,
+  calculateOrbitObservation,
+  calculateOrbitZone,
   createGameState,
   finishGame,
-  LARGE_CHANGE_DISTANCE_MIN,
-  movePlanet,
+  INNER_ORBIT_MAX,
+  MAX_ORBIT_RADIUS_RATIO,
+  MIN_ORBIT_RADIUS_RATIO,
+  OUTER_ORBIT_MIN,
   resetGame,
   saveOrbitGameResult,
-  STABLE_DISTANCE_MAX,
+  setOrbitRadius,
 } from "../src/game/index.ts";
 import { UserStateStore } from "../src/storage/index.ts";
 import { MemoryStorage } from "./helpers/memory-storage";
 
-describe("orbit game teaching model", () => {
-  it("G-01 creates a valid initial state", () => {
-    const state = createGameState("earth", { x: 10, y: 20 });
-
-    expect(state).toEqual({
+describe("orbit radius teaching model", () => {
+  it("G-01 creates a reference circular-orbit state", () => {
+    expect(createGameState("earth")).toEqual({
       planetId: "earth",
-      startPosition: { x: 10, y: 20 },
-      currentPosition: { x: 10, y: 20 },
-      displacement: 0,
-      changeLevel: "stable",
+      radiusRatio: 1,
+      zone: "reference",
+      exploredZones: {
+        inner: false,
+        outer: false,
+      },
       score: 0,
       completed: false,
     });
   });
 
-  it("G-02 treats zero movement as stable", () => {
-    const initial = createGameState("earth", { x: 0, y: 0 });
-
-    expect(movePlanet(initial, { x: 0, y: 0 }).changeLevel).toBe("stable");
+  it("G-02 classifies both teaching-zone boundaries exactly", () => {
+    expect(calculateOrbitZone(INNER_ORBIT_MAX)).toBe("inner");
+    expect(calculateOrbitZone(INNER_ORBIT_MAX + 0.001)).toBe("reference");
+    expect(calculateOrbitZone(OUTER_ORBIT_MIN - 0.001)).toBe("reference");
+    expect(calculateOrbitZone(OUTER_ORBIT_MIN)).toBe("outer");
   });
 
-  it("G-03 classifies a small drag as a small change", () => {
-    const initial = createGameState("mars", { x: 0, y: 0 });
-    const state = movePlanet(initial, { x: 10, y: 0 });
+  it("G-03 records an inner-orbit exploration once", () => {
+    const state = setOrbitRadius(createGameState("earth"), 0.75);
 
-    expect(state.changeLevel).toBe("small");
+    expect(state.zone).toBe("inner");
+    expect(state.exploredZones).toEqual({ inner: true, outer: false });
     expect(state.score).toBe(50);
     expect(state.completed).toBe(false);
   });
 
-  it("G-04 classifies a large drag as a large change", () => {
-    const initial = createGameState("jupiter", { x: 0, y: 0 });
-    const state = movePlanet(initial, { x: 60, y: 0 });
+  it("G-04 records an outer-orbit exploration once", () => {
+    const state = setOrbitRadius(createGameState("earth"), 1.25);
 
-    expect(state.changeLevel).toBe("large");
-    expect(state.score).toBe(100);
-    expect(state.completed).toBe(true);
+    expect(state.zone).toBe("outer");
+    expect(state.exploredZones).toEqual({ inner: false, outer: true });
+    expect(state.score).toBe(50);
+    expect(state.completed).toBe(false);
   });
 
-  it("G-05 handles both threshold boundaries exactly", () => {
-    expect(calculateChangeLevel(STABLE_DISTANCE_MAX)).toBe("stable");
-    expect(calculateChangeLevel(STABLE_DISTANCE_MAX + 0.001)).toBe("small");
-    expect(calculateChangeLevel(LARGE_CHANGE_DISTANCE_MIN - 0.001)).toBe(
-      "small",
+  it("G-05 completes only after exploring both sides", () => {
+    const inner = setOrbitRadius(createGameState("earth"), 0.75);
+    const completed = setOrbitRadius(inner, 1.25);
+
+    expect(completed.exploredZones).toEqual({ inner: true, outer: true });
+    expect(completed.score).toBe(100);
+    expect(completed.completed).toBe(true);
+  });
+
+  it("G-06 clamps dragging to the visible teaching range", () => {
+    const initial = createGameState("earth");
+
+    expect(setOrbitRadius(initial, 0.1).radiusRatio).toBe(
+      MIN_ORBIT_RADIUS_RATIO,
     );
-    expect(calculateChangeLevel(LARGE_CHANGE_DISTANCE_MIN)).toBe("large");
+    expect(setOrbitRadius(initial, 3).radiusRatio).toBe(
+      MAX_ORBIT_RADIUS_RATIO,
+    );
   });
 
-  it("G-06 measures consecutive drags from the start position", () => {
-    const initial = createGameState("saturn", { x: 10, y: 10 });
-    const firstMove = movePlanet(initial, { x: 20, y: 10 });
-    const secondMove = movePlanet(firstMove, { x: 40, y: 10 });
+  it("G-07 follows circular-orbit speed and period relationships", () => {
+    const reference = calculateOrbitObservation(1);
+    const inner = calculateOrbitObservation(0.75);
+    const outer = calculateOrbitObservation(1.25);
 
-    expect(firstMove.displacement).toBe(10);
-    expect(secondMove.displacement).toBe(30);
-    expect(secondMove.currentPosition).toEqual({ x: 40, y: 10 });
+    expect(reference.periodRatio).toBe(1);
+    expect(reference.speedRatio).toBe(1);
+    expect(inner.periodRatio).toBeLessThan(1);
+    expect(inner.speedRatio).toBeGreaterThan(1);
+    expect(outer.periodRatio).toBeGreaterThan(1);
+    expect(outer.speedRatio).toBeLessThan(1);
   });
 
-  it("G-07 resets position, level, score, and completion", () => {
-    const initial = createGameState("venus", { x: 5, y: 8 });
-    const moved = movePlanet(initial, { x: 100, y: 8 });
-
-    expect(resetGame(moved)).toEqual(initial);
-  });
-
-  it("G-08 rejects non-finite coordinates", () => {
-    expect(() =>
-      createGameState("earth", { x: Number.NaN, y: 0 }),
-    ).toThrow(TypeError);
-    expect(() =>
-      movePlanet(createGameState("earth", { x: 0, y: 0 }), {
-        x: Number.POSITIVE_INFINITY,
-        y: 0,
-      }),
-    ).toThrow(TypeError);
-  });
-
-  it("G-09 returns a complete game result", () => {
-    const state = movePlanet(
-      createGameState("neptune", { x: 0, y: 0 }),
-      { x: 60, y: 0 },
+  it("G-08 resets radius, progress, score, and completion", () => {
+    const completed = setOrbitRadius(
+      setOrbitRadius(createGameState("earth"), 0.75),
+      1.25,
     );
 
-    expect(finishGame(state)).toEqual({
-      planetId: "neptune",
-      displacement: 60,
-      changeLevel: "large",
+    expect(resetGame(completed)).toEqual(createGameState("earth"));
+  });
+
+  it("G-09 rejects invalid planet IDs and radius ratios", () => {
+    expect(() => createGameState("  ")).toThrow(TypeError);
+    expect(() =>
+      setOrbitRadius(createGameState("earth"), Number.NaN),
+    ).toThrow(TypeError);
+    expect(() => calculateOrbitObservation(0)).toThrow(TypeError);
+  });
+
+  it("G-10 returns a complete immutable game result", () => {
+    const completed = setOrbitRadius(
+      setOrbitRadius(createGameState("earth"), 0.75),
+      1.25,
+    );
+    const result = finishGame(completed);
+
+    expect(result).toEqual({
+      planetId: "earth",
+      radiusRatio: 1.25,
+      zone: "outer",
+      exploredZones: { inner: true, outer: true },
       score: 100,
       success: true,
     });
+    expect(result.exploredZones).not.toBe(completed.exploredZones);
   });
 
-  it("G-10 saves the finished result through the storage module", () => {
+  it("G-11 saves a completed exploration through the storage module", () => {
     const store = new UserStateStore(new MemoryStorage());
-    const state = movePlanet(
-      createGameState("uranus", { x: 0, y: 0 }),
-      { x: 60, y: 0 },
+    const completed = setOrbitRadius(
+      setOrbitRadius(createGameState("earth"), 0.75),
+      1.25,
     );
-
-    const saved = saveOrbitGameResult(state, store);
+    const saved = saveOrbitGameResult(completed, store);
 
     expect(saved.result.success).toBe(true);
     expect(saved.userState.gameRecord).toEqual({
@@ -123,28 +141,21 @@ describe("orbit game teaching model", () => {
     });
   });
 
-  it("G-11 does not mutate the input state", () => {
-    const initial = createGameState("mercury", { x: 0, y: 0 });
+  it("G-12 does not mutate the input state", () => {
+    const initial = createGameState("earth");
     const snapshot = structuredClone(initial);
-
-    const moved = movePlanet(initial, { x: 30, y: 40 });
+    const moved = setOrbitRadius(initial, 0.75);
 
     expect(initial).toEqual(snapshot);
     expect(moved).not.toBe(initial);
-    expect(moved.startPosition).not.toBe(initial.startPosition);
-    expect(moved.currentPosition).not.toBe(initial.currentPosition);
+    expect(moved.exploredZones).not.toBe(initial.exploredZones);
   });
 
-  it("rejects empty planet IDs and invalid displacement values", () => {
-    expect(() => createGameState("  ", { x: 0, y: 0 })).toThrow(TypeError);
-    expect(() => calculateChangeLevel(-1)).toThrow(TypeError);
-    expect(() => calculateChangeLevel(Number.NaN)).toThrow(TypeError);
-  });
+  it("G-13 returns the same state for the same input", () => {
+    const initial = createGameState("earth");
 
-  it("returns the same state for the same input", () => {
-    const state = createGameState("earth", { x: 2, y: 3 });
-    const target = { x: 14, y: 8 };
-
-    expect(movePlanet(state, target)).toEqual(movePlanet(state, target));
+    expect(setOrbitRadius(initial, 1.25)).toEqual(
+      setOrbitRadius(initial, 1.25),
+    );
   });
 });

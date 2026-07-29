@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  GAME_COORDINATE_SPAN,
   SOLAR_RAIN_SCENE_ID,
-  normalizeOrbitDrag,
   advanceSolarWindParticle,
+  calculateOrbitRadiusRatio,
+  createProjectedOrbitGeometry,
   createSolarWindParticles,
   shouldSaveOrbitAttempt,
 } from '../src/canvas/scenes/member4SceneLogic.ts';
-import { calculateChangeLevel } from '../src/game/index.ts';
 
 describe('member 4 Canvas scene logic', () => {
   it('M4-C-00 follows the shared solar-rain entry protocol', () => {
@@ -56,42 +55,22 @@ describe('member 4 Canvas scene logic', () => {
     );
   });
 
-  it('M4-C-05 normalizes equal proportional drags across devices', () => {
-    const desktop = normalizeOrbitDrag(
-      { x: 100, y: 100 },
-      { x: 160, y: 100 },
-      { width: 1200, height: 500 },
-    );
-    const mobile = normalizeOrbitDrag(
-      { x: 50, y: 50 },
-      { x: 93.2, y: 50 },
-      { width: 360, height: 600 },
-    );
+  it('M4-C-05 keeps equal proportional radius drags device independent', () => {
+    const desktop = calculateOrbitRadiusRatio(760, 400, 300);
+    const mobile = calculateOrbitRadiusRatio(304, 160, 120);
 
-    expect(desktop.x).toBe(60);
-    expect(mobile.x).toBe(60);
-    expect(GAME_COORDINATE_SPAN).toBe(500);
-    expect(calculateChangeLevel(desktop.x)).toBe('large');
-    expect(calculateChangeLevel(mobile.x)).toBe('large');
+    expect(desktop).toBe(1.2);
+    expect(mobile).toBe(1.2);
   });
 
-  it('M4-C-06 keeps the same orbit result for the same viewport ratio', () => {
-    const desktop = normalizeOrbitDrag(
-      { x: 100, y: 100 },
-      { x: 180, y: 140 },
-      { width: 1000, height: 500 },
-    );
-    const mobile = normalizeOrbitDrag(
-      { x: 40, y: 40 },
-      { x: 88, y: 64 },
-      { width: 300, height: 600 },
-    );
+  it('M4-C-06 places Earth exactly on the projected orbit', () => {
+    const orbit = createProjectedOrbitGeometry({ x: 300, y: 240 }, 180);
+    const ellipseEquation =
+      ((orbit.body.x - orbit.center.x) / orbit.radiusX) ** 2 +
+      ((orbit.body.y - orbit.center.y) / orbit.radiusY) ** 2;
 
-    expect(mobile.x).toBeCloseTo(desktop.x);
-    expect(mobile.y).toBeCloseTo(desktop.y);
-    expect(calculateChangeLevel(Math.hypot(desktop.x, desktop.y))).toBe(
-      calculateChangeLevel(Math.hypot(mobile.x, mobile.y)),
-    );
+    expect(orbit.body).toEqual({ x: 480, y: 240 });
+    expect(ellipseEquation).toBeCloseTo(1);
   });
 
   it('M4-C-07 saves only the first completed orbit attempt', () => {

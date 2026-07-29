@@ -3,26 +3,17 @@ import {
   type SolarKidsUserState,
 } from "../storage/index.js";
 import type {
+  ExploredOrbitZones,
   GameResult,
-  OrbitChangeLevel,
   OrbitGameState,
-  Point,
+  OrbitObservation,
+  OrbitZone,
 } from "./types.js";
 
-export const STABLE_DISTANCE_MAX = 5;
-export const LARGE_CHANGE_DISTANCE_MIN = 60;
-
-const SCORE_BY_CHANGE_LEVEL: Record<OrbitChangeLevel, number> = {
-  stable: 0,
-  small: 50,
-  large: 100,
-};
-
-function assertPoint(point: Point): void {
-  if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
-    throw new TypeError("Point coordinates must be finite numbers.");
-  }
-}
+export const MIN_ORBIT_RADIUS_RATIO = 0.65;
+export const MAX_ORBIT_RADIUS_RATIO = 1.35;
+export const INNER_ORBIT_MAX = 0.82;
+export const OUTER_ORBIT_MIN = 1.18;
 
 function normalizePlanetId(planetId: string): string {
   const normalized = planetId.trim();
@@ -33,75 +24,94 @@ function normalizePlanetId(planetId: string): string {
   return normalized;
 }
 
-function clonePoint(point: Point): Point {
-  return { x: point.x, y: point.y };
-}
-
-export function calculateDisplacement(start: Point, target: Point): number {
-  assertPoint(start);
-  assertPoint(target);
-  return Math.hypot(target.x - start.x, target.y - start.y);
-}
-
-export function calculateChangeLevel(
-  displacement: number,
-): OrbitChangeLevel {
-  if (!Number.isFinite(displacement) || displacement < 0) {
-    throw new TypeError("Displacement must be a non-negative finite number.");
+function assertRadiusRatio(radiusRatio: number): void {
+  if (!Number.isFinite(radiusRatio) || radiusRatio <= 0) {
+    throw new TypeError("Orbit radius ratio must be a positive finite number.");
   }
-
-  if (displacement <= STABLE_DISTANCE_MAX) {
-    return "stable";
-  }
-
-  return displacement < LARGE_CHANGE_DISTANCE_MIN ? "small" : "large";
 }
 
-export function createGameState(
-  planetId: string,
-  startPosition: Point,
-): OrbitGameState {
-  assertPoint(startPosition);
+function clampRadiusRatio(radiusRatio: number): number {
+  return Math.min(
+    MAX_ORBIT_RADIUS_RATIO,
+    Math.max(MIN_ORBIT_RADIUS_RATIO, radiusRatio),
+  );
+}
+
+function cloneExploredZones(
+  exploredZones: Readonly<ExploredOrbitZones>,
+): ExploredOrbitZones {
+  return { ...exploredZones };
+}
+
+export function calculateOrbitZone(radiusRatio: number): OrbitZone {
+  assertRadiusRatio(radiusRatio);
+
+  if (radiusRatio <= INNER_ORBIT_MAX) return "inner";
+  if (radiusRatio >= OUTER_ORBIT_MIN) return "outer";
+  return "reference";
+}
+
+export function calculateOrbitObservation(
+  radiusRatio: number,
+): OrbitObservation {
+  assertRadiusRatio(radiusRatio);
 
   return {
+    radiusRatio,
+    periodRatio: radiusRatio ** 1.5,
+    speedRatio: radiusRatio ** -0.5,
+    zone: calculateOrbitZone(radiusRatio),
+  };
+}
+
+export function createGameState(planetId: string): OrbitGameState {
+  return {
     planetId: normalizePlanetId(planetId),
-    startPosition: clonePoint(startPosition),
-    currentPosition: clonePoint(startPosition),
-    displacement: 0,
-    changeLevel: "stable",
-    score: SCORE_BY_CHANGE_LEVEL.stable,
+    radiusRatio: 1,
+    zone: "reference",
+    exploredZones: {
+      inner: false,
+      outer: false,
+    },
+    score: 0,
     completed: false,
   };
 }
 
-export function movePlanet(
+export function setOrbitRadius(
   state: OrbitGameState,
-  target: Point,
+  radiusRatio: number,
 ): OrbitGameState {
-  assertPoint(target);
-  const displacement = calculateDisplacement(state.startPosition, target);
-  const changeLevel = calculateChangeLevel(displacement);
+  assertRadiusRatio(radiusRatio);
+  const nextRadiusRatio = clampRadiusRatio(radiusRatio);
+  const zone = calculateOrbitZone(nextRadiusRatio);
+  const exploredZones = {
+    inner: state.exploredZones.inner || zone === "inner",
+    outer: state.exploredZones.outer || zone === "outer",
+  };
+  const score =
+    (exploredZones.inner ? 50 : 0) + (exploredZones.outer ? 50 : 0);
 
   return {
     ...state,
-    startPosition: clonePoint(state.startPosition),
-    currentPosition: clonePoint(target),
-    displacement,
-    changeLevel,
-    score: SCORE_BY_CHANGE_LEVEL[changeLevel],
-    completed: changeLevel === "large",
+    radiusRatio: nextRadiusRatio,
+    zone,
+    exploredZones,
+    score,
+    completed: exploredZones.inner && exploredZones.outer,
   };
 }
 
 export function resetGame(state: OrbitGameState): OrbitGameState {
-  return createGameState(state.planetId, state.startPosition);
+  return createGameState(state.planetId);
 }
 
 export function finishGame(state: OrbitGameState): GameResult {
   return {
     planetId: state.planetId,
-    displacement: state.displacement,
-    changeLevel: state.changeLevel,
+    radiusRatio: state.radiusRatio,
+    zone: state.zone,
+    exploredZones: cloneExploredZones(state.exploredZones),
     score: state.score,
     success: state.completed,
   };

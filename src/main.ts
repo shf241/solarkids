@@ -531,13 +531,13 @@ function updateTopicPanel(sceneId: string | null): void {
   } else if (sceneId === 'orbit-game') {
     renderPanel({
       id: 'scene.orbit-game',
-      name: 'Orbit Explorer Game',
-      nameCN: '轨道探索小游戏',
+      name: 'Orbit Radius Lab',
+      nameCN: '轨道半径实验',
       emoji: '🎯',
-      desc: '拖动地球，观察它与原轨道之间的变化。',
+      desc: '沿日地方向拖动地球，在太阳引力的简化圆轨道模型中比较距离、公转快慢和周期。',
       stats: [
-        { label: '目标', value: '拖出明显变化' },
-        { label: '最高分', value: '100' },
+        { label: '探索任务', value: '近 + 远轨道' },
+        { label: '科学模型', value: '圆轨道' },
       ],
     });
   }

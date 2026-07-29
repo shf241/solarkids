@@ -1,5 +1,4 @@
-import type { Point } from '../../game/index.js';
-import type { CanvasViewport, Point2D } from '../types.js';
+import type { Point2D } from '../types.js';
 
 export const SOLAR_RAIN_SCENE_ID = 'solar-rain';
 
@@ -11,9 +10,15 @@ export interface SolarWindParticle {
   phase: number;
 }
 
-export const GAME_COORDINATE_SPAN = 500;
 const DEFAULT_PARTICLE_COUNT = 72;
 const TAU = Math.PI * 2;
+
+export interface ProjectedOrbitGeometry {
+  center: Point2D;
+  radiusX: number;
+  radiusY: number;
+  body: Point2D;
+}
 
 export function createSolarWindParticles(
   count = DEFAULT_PARTICLE_COUNT,
@@ -41,18 +46,48 @@ export function advanceSolarWindParticle(
   };
 }
 
-export function normalizeOrbitDrag(
-  start: Readonly<Point2D>,
-  target: Readonly<Point2D>,
-  viewport: Pick<CanvasViewport, 'width' | 'height'>,
-): Point {
-  const scale = GAME_COORDINATE_SPAN / Math.max(
-    1,
-    Math.min(viewport.width, viewport.height),
-  );
+export function calculateOrbitRadiusRatio(
+  targetX: number,
+  centerX: number,
+  referenceRadius: number,
+): number {
+  if (
+    !Number.isFinite(targetX) ||
+    !Number.isFinite(centerX) ||
+    !Number.isFinite(referenceRadius) ||
+    referenceRadius <= 0
+  ) {
+    throw new TypeError('Orbit geometry must use finite positive dimensions.');
+  }
+
+  return (targetX - centerX) / referenceRadius;
+}
+
+export function createProjectedOrbitGeometry(
+  center: Readonly<Point2D>,
+  radiusX: number,
+  verticalScale = 0.42,
+): ProjectedOrbitGeometry {
+  if (
+    !Number.isFinite(center.x) ||
+    !Number.isFinite(center.y) ||
+    !Number.isFinite(radiusX) ||
+    radiusX <= 0 ||
+    !Number.isFinite(verticalScale) ||
+    verticalScale <= 0
+  ) {
+    throw new TypeError('Projected orbit geometry must be finite and positive.');
+  }
+
+  const radiusY = radiusX * verticalScale;
   return {
-    x: (target.x - start.x) * scale,
-    y: (target.y - start.y) * scale,
+    center: { ...center },
+    radiusX,
+    radiusY,
+    body: {
+      x: center.x + radiusX,
+      y: center.y,
+    },
   };
 }
 

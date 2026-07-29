@@ -75,7 +75,7 @@ npm run build
 
 - `src/storage/index.ts`：语言、皮肤、学习进度和游戏记录。
 - `src/i18n/index.ts`：中英文文案读取和切换。
-- `src/game/index.ts`：轨道拖动小游戏的纯逻辑。
+- `src/game/index.ts`：轨道半径实验的纯逻辑与圆轨道教学关系。
 - `src/data/language.json`：界面与八大行星双语内容。
 
 成员4的职责、实现接口、AI协作过程和验收证据统一见

@@ -1,17 +1,20 @@
 export {
-  calculateChangeLevel,
-  calculateDisplacement,
+  calculateOrbitObservation,
+  calculateOrbitZone,
   createGameState,
   finishGame,
-  LARGE_CHANGE_DISTANCE_MIN,
-  movePlanet,
+  INNER_ORBIT_MAX,
+  MAX_ORBIT_RADIUS_RATIO,
+  MIN_ORBIT_RADIUS_RATIO,
+  OUTER_ORBIT_MIN,
   resetGame,
   saveOrbitGameResult,
-  STABLE_DISTANCE_MAX,
+  setOrbitRadius,
 } from "./orbit-game.js";
 export type {
+  ExploredOrbitZones,
   GameResult,
-  OrbitChangeLevel,
   OrbitGameState,
-  Point,
+  OrbitObservation,
+  OrbitZone,
 } from "./types.js";

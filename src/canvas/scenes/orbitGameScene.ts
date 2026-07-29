@@ -1,9 +1,13 @@
 import {
+  calculateOrbitObservation,
   createGameState,
-  movePlanet,
+  MAX_ORBIT_RADIUS_RATIO,
+  MIN_ORBIT_RADIUS_RATIO,
   resetGame,
   saveOrbitGameResult,
+  setOrbitRadius,
   type OrbitGameState,
+  type OrbitZone,
 } from '../../game/index.js';
 import { UserStateStore } from '../../storage/index.js';
 import type { SkinType } from '../../ui/assetLoader.js';
@@ -25,9 +29,10 @@ import {
   type SceneButton,
 } from './sceneVisuals.js';
 import {
-  GAME_COORDINATE_SPAN,
-  normalizeOrbitDrag,
+  calculateOrbitRadiusRatio,
+  createProjectedOrbitGeometry,
   shouldSaveOrbitAttempt,
+  type ProjectedOrbitGeometry,
 } from './member4SceneLogic.js';
 
 export interface OrbitGameSceneOptions {
@@ -36,22 +41,33 @@ export interface OrbitGameSceneOptions {
   translate: (key: string) => string;
 }
 
+interface OrbitLayout {
+  center: Point2D;
+  referenceRadius: number;
+  verticalScale: number;
+  sunRadius: number;
+  earthRadius: number;
+}
+
 const ACCENT = '#ffd35c';
+const INNER_COLOR = '#61e7ff';
+const OUTER_COLOR = '#ffbd62';
+const COMPLETE_COLOR = '#73ffb4';
 const TAU = Math.PI * 2;
 
 export function createOrbitGameScene(
   options: OrbitGameSceneOptions,
 ): CanvasScene {
-  let state = createGameState('earth', { x: 0, y: 0 });
+  let state = createGameState('earth');
   let runtimeContext: CanvasRuntimeContext | null = null;
-  let dragStart: Point2D | null = null;
+  let dragOffsetX: number | null = null;
   let dragging = false;
   let resultSaved = false;
   let buttons: SceneButton[] = [];
 
   const resetAttempt = (): void => {
     state = resetGame(state);
-    dragStart = null;
+    dragOffsetX = null;
     dragging = false;
     resultSaved = false;
     runtimeContext?.invalidate();
@@ -67,16 +83,14 @@ export function createOrbitGameScene(
     }
 
     const viewport = runtimeContext.getViewport();
-    const earth = getEarthScreenPosition(state, viewport);
-    const hitRadius = Math.max(26, Math.min(viewport.width, viewport.height) * 0.06);
+    const layout = getOrbitLayout(viewport);
+    const earth = getCurrentOrbit(layout, state).body;
+    const hitRadius = Math.max(28, layout.earthRadius * 1.7);
     if (Math.hypot(point.x - earth.x, point.y - earth.y) > hitRadius) {
       return;
     }
 
-    dragStart = {
-      x: point.x - gameToScreen(state.currentPosition.x, viewport),
-      y: point.y - gameToScreen(state.currentPosition.y, viewport),
-    };
+    dragOffsetX = point.x - earth.x;
     dragging = true;
     runtimeContext.canvas.setPointerCapture?.(event.pointerId);
     runtimeContext.canvas.style.cursor = 'grabbing';
@@ -85,20 +99,26 @@ export function createOrbitGameScene(
   const onPointerMove = (event: PointerEvent): void => {
     if (!runtimeContext) return;
     const point = getCanvasPoint(runtimeContext.canvas, event);
-    if (dragging && dragStart) {
-      state = movePlanet(
+    if (dragging && dragOffsetX !== null) {
+      const layout = getOrbitLayout(runtimeContext.getViewport());
+      const targetX = point.x - dragOffsetX;
+      state = setOrbitRadius(
         state,
-        normalizeOrbitDrag(dragStart, point, runtimeContext.getViewport()),
+        calculateOrbitRadiusRatio(
+          targetX,
+          layout.center.x,
+          layout.referenceRadius,
+        ),
       );
       runtimeContext.invalidate();
       return;
     }
 
-    const viewport = runtimeContext.getViewport();
-    const earth = getEarthScreenPosition(state, viewport);
+    const layout = getOrbitLayout(runtimeContext.getViewport());
+    const earth = getCurrentOrbit(layout, state).body;
     const overEarth =
       Math.hypot(point.x - earth.x, point.y - earth.y) <=
-      Math.max(26, Math.min(viewport.width, viewport.height) * 0.06);
+      Math.max(28, layout.earthRadius * 1.7);
     runtimeContext.canvas.style.cursor =
       overEarth || hitButton(buttons, point) ? 'grab' : 'default';
   };
@@ -106,7 +126,7 @@ export function createOrbitGameScene(
   const finishAttempt = (event: PointerEvent): void => {
     if (!runtimeContext || !dragging) return;
     dragging = false;
-    dragStart = null;
+    dragOffsetX = null;
     runtimeContext.canvas.releasePointerCapture?.(event.pointerId);
     runtimeContext.canvas.style.cursor = 'grab';
 
@@ -114,7 +134,7 @@ export function createOrbitGameScene(
       const saved = saveOrbitGameResult(state, options.store);
       resultSaved = true;
       if (saved.result.success) {
-        options.store.markTaskCompleted('orbit-game-large-change');
+        options.store.markTaskCompleted('orbit-radius-inner-outer');
       }
     }
     runtimeContext.invalidate();
@@ -157,15 +177,13 @@ export function createOrbitGameScene(
         new Set(resultSaved ? ['reset'] : []),
         ACCENT,
       );
-      drawOrbitGame(
+      drawOrbitRadiusLab(
         context.context2D,
         width,
         height,
         state,
         skinType,
         options.translate,
-        options.store.loadUserState().gameRecord.bestScore,
-        resultSaved,
       );
     },
 
@@ -181,7 +199,7 @@ export function createOrbitGameScene(
       context.canvas.removeEventListener('pointercancel', finishAttempt);
       context.canvas.style.cursor = 'grab';
       runtimeContext = null;
-      dragStart = null;
+      dragOffsetX = null;
       dragging = false;
       buttons = [];
     },
@@ -200,98 +218,131 @@ function createResetButton(width: number): SceneButton {
   };
 }
 
-function drawOrbitGame(
+function drawOrbitRadiusLab(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   state: OrbitGameState,
   skinType: SkinType,
   translate: (key: string) => string,
-  bestScore: number,
-  resultSaved: boolean,
 ): void {
-  const viewport = { width, height };
+  const layout = getOrbitLayout({ width, height, dpr: 1 });
+  const referenceOrbit = createProjectedOrbitGeometry(
+    layout.center,
+    layout.referenceRadius,
+    layout.verticalScale,
+  );
+  const currentOrbit = getCurrentOrbit(layout, state);
+  const observation = calculateOrbitObservation(state.radiusRatio);
+  const orbitColor = getOrbitColor(state.zone, state.completed);
+
+  drawOrbit(ctx, referenceOrbit, 'rgba(205, 224, 255, 0.38)', [7, 7]);
+  drawOrbit(ctx, currentOrbit, orbitColor, []);
+  drawRadiusGuide(ctx, layout);
+  drawSun(ctx, layout.center, layout.sunRadius, skinType);
+  drawEarth(
+    ctx,
+    currentOrbit.body,
+    layout.earthRadius,
+    skinType,
+    state.completed,
+  );
+  drawBodyLabel(
+    ctx,
+    translate('solarWind.sun'),
+    layout.center.x,
+    layout.center.y + layout.sunRadius + 12,
+  );
+  drawBodyLabel(
+    ctx,
+    translate('solarWind.earth'),
+    currentOrbit.body.x,
+    currentOrbit.body.y + layout.earthRadius + 12,
+  );
+
   const compact = width < 620;
-  const sun = getSunPosition(viewport);
-  const earthStart = getEarthStartPosition(viewport);
-  const earth = getEarthScreenPosition(state, viewport);
-  const sunRadius = Math.max(30, Math.min(width, height) * 0.075);
-  const earthRadius = Math.max(18, Math.min(width, height) * 0.038);
-
-  drawOrbit(
-    ctx,
-    sun,
-    earthStart,
-    'rgba(205, 224, 255, 0.38)',
-    [7, 7],
-  );
-  if (state.changeLevel !== 'stable') {
-    drawOrbit(
-      ctx,
-      sun,
-      earth,
-      state.completed ? '#73ffb4' : ACCENT,
-      [],
-    );
-  }
-  drawDistanceGuide(ctx, earthStart, earth, state.completed);
-  drawSun(ctx, sun, sunRadius, skinType);
-  drawEarth(ctx, earth, earthRadius, skinType, state.completed);
-  drawBodyLabel(ctx, translate('solarWind.sun'), sun.x, sun.y + sunRadius + 12);
-  drawBodyLabel(ctx, translate('solarWind.earth'), earth.x, earth.y + earthRadius + 12);
-
-  const status = translate(`game.change.${state.changeLevel}`);
+  const chipX = compact ? 14 : 28;
+  const period = observation.periodRatio.toFixed(2);
+  const radius = observation.radiusRatio.toFixed(2);
   drawInfoChip(
     ctx,
-    `${translate('game.score')}: ${state.score} · ${status}`,
-    compact ? 14 : 28,
-    height - (compact ? 82 : 96),
-    state.completed ? '#73ffb4' : ACCENT,
+    `${translate('game.distance')}: ${radius} AU · ${translate('game.period')}: ${period} ${translate('game.year')}`,
+    chipX,
+    height - (compact ? 119 : 132),
+    orbitColor,
   );
   drawInfoChip(
     ctx,
-    resultSaved
-      ? `${translate('game.saved')} · ${translate('game.best')}: ${bestScore}`
-      : translate('hint.dragPlanet'),
-    compact ? 14 : 28,
-    height - (compact ? 45 : 57),
-    '#61e7ff',
+    `${translate(`game.speed.${getSpeedKey(state.zone)}`)} · ${getProgressMessage(state, translate)}`,
+    chipX,
+    height - (compact ? 82 : 94),
+    state.completed ? COMPLETE_COLOR : ACCENT,
+  );
+  drawInfoChip(
+    ctx,
+    translate('game.modelNote'),
+    chipX,
+    height - (compact ? 45 : 56),
+    '#9db9ff',
   );
 }
 
 function drawOrbit(
   ctx: CanvasRenderingContext2D,
-  sun: Point2D,
-  earth: Point2D,
+  orbit: Readonly<ProjectedOrbitGeometry>,
   color: string,
   dash: number[],
 ): void {
-  const radiusX = Math.max(55, Math.abs(earth.x - sun.x));
-  const radiusY = Math.max(34, radiusX * 0.42 + Math.abs(earth.y - sun.y) * 0.25);
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
   ctx.setLineDash(dash);
   ctx.beginPath();
-  ctx.ellipse(sun.x, sun.y, radiusX, radiusY, 0, 0, TAU);
+  ctx.ellipse(
+    orbit.center.x,
+    orbit.center.y,
+    orbit.radiusX,
+    orbit.radiusY,
+    0,
+    0,
+    TAU,
+  );
   ctx.stroke();
   ctx.restore();
 }
 
-function drawDistanceGuide(
+function drawRadiusGuide(
   ctx: CanvasRenderingContext2D,
-  start: Point2D,
-  current: Point2D,
-  completed: boolean,
+  layout: OrbitLayout,
 ): void {
+  const minX =
+    layout.center.x + layout.referenceRadius * MIN_ORBIT_RADIUS_RATIO;
+  const maxX =
+    layout.center.x + layout.referenceRadius * MAX_ORBIT_RADIUS_RATIO;
+  const y = layout.center.y;
+
   ctx.save();
-  ctx.strokeStyle = completed ? '#73ffb4' : 'rgba(255, 211, 92, 0.75)';
+  ctx.strokeStyle = 'rgba(214, 227, 255, 0.3)';
   ctx.lineWidth = 2;
   ctx.setLineDash([4, 5]);
   ctx.beginPath();
-  ctx.moveTo(start.x, start.y);
-  ctx.lineTo(current.x, current.y);
+  ctx.moveTo(minX, y);
+  ctx.lineTo(maxX, y);
   ctx.stroke();
+
+  ctx.setLineDash([]);
+  const markers: Array<{ ratio: number; color: string }> = [
+    { ratio: 0.74, color: INNER_COLOR },
+    { ratio: 1, color: '#d7e4ff' },
+    { ratio: 1.26, color: OUTER_COLOR },
+  ];
+  for (const marker of markers) {
+    const x = layout.center.x + layout.referenceRadius * marker.ratio;
+    ctx.fillStyle = marker.color;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, TAU);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -318,7 +369,7 @@ function drawEarth(
   completed: boolean,
 ): void {
   if (completed) {
-    ctx.strokeStyle = '#73ffb4';
+    ctx.strokeStyle = COMPLETE_COLOR;
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.arc(center.x, center.y, radius * 1.45, 0, TAU);
@@ -333,38 +384,64 @@ function drawEarth(
   ctx.fill();
 }
 
-function getSunPosition(viewport: Pick<CanvasViewport, 'width' | 'height'>): Point2D {
+function getOrbitLayout(
+  viewport: Pick<CanvasViewport, 'width' | 'height' | 'dpr'>,
+): OrbitLayout {
+  const { width, height } = viewport;
+  const compact = width < 620;
+  const sceneWidth = compact ? width : width * 0.78;
+  const center = {
+    x: compact ? width * 0.5 : sceneWidth * 0.43,
+    y: 112 + Math.max(180, height - 230) * 0.46,
+  };
+  const horizontalLimit = Math.min(
+    center.x - (compact ? 22 : 42),
+    sceneWidth - center.x - (compact ? 22 : 42),
+  );
+  const verticalLimit = Math.max(100, (height - 245) / 0.92);
+  const maxRadius = Math.max(86, Math.min(horizontalLimit, verticalLimit));
+  const referenceRadius = maxRadius / MAX_ORBIT_RADIUS_RATIO;
+  const bodyScale = Math.min(width, height);
+
   return {
-    x: viewport.width * (viewport.width < 620 ? 0.26 : 0.31),
-    y: 120 + (viewport.height - 190) * 0.5,
+    center,
+    referenceRadius,
+    verticalScale: 0.42,
+    sunRadius: Math.max(28, bodyScale * 0.055),
+    earthRadius: Math.max(17, bodyScale * 0.028),
   };
 }
 
-function getEarthStartPosition(
-  viewport: Pick<CanvasViewport, 'width' | 'height'>,
-): Point2D {
-  const sun = getSunPosition(viewport);
-  return {
-    x: viewport.width * (viewport.width < 620 ? 0.72 : 0.7),
-    y: sun.y,
-  };
+function getCurrentOrbit(
+  layout: OrbitLayout,
+  state: Pick<OrbitGameState, 'radiusRatio'>,
+): ProjectedOrbitGeometry {
+  return createProjectedOrbitGeometry(
+    layout.center,
+    layout.referenceRadius * state.radiusRatio,
+    layout.verticalScale,
+  );
 }
 
-function getEarthScreenPosition(
-  state: OrbitGameState,
-  viewport: Pick<CanvasViewport, 'width' | 'height'>,
-): Point2D {
-  const start = getEarthStartPosition(viewport);
-  return {
-    x: start.x + gameToScreen(state.currentPosition.x, viewport),
-    y: start.y + gameToScreen(state.currentPosition.y, viewport),
-  };
+function getOrbitColor(zone: OrbitZone, completed: boolean): string {
+  if (completed) return COMPLETE_COLOR;
+  if (zone === 'inner') return INNER_COLOR;
+  if (zone === 'outer') return OUTER_COLOR;
+  return ACCENT;
 }
 
-function gameToScreen(
-  value: number,
-  viewport: Pick<CanvasViewport, 'width' | 'height'>,
-): number {
-  return value * Math.max(1, Math.min(viewport.width, viewport.height)) /
-    GAME_COORDINATE_SPAN;
+function getSpeedKey(zone: OrbitZone): 'fast' | 'same' | 'slow' {
+  if (zone === 'inner') return 'fast';
+  if (zone === 'outer') return 'slow';
+  return 'same';
+}
+
+function getProgressMessage(
+  state: Pick<OrbitGameState, 'completed' | 'exploredZones'>,
+  translate: (key: string) => string,
+): string {
+  if (state.completed) return translate('game.progress.complete');
+  if (state.exploredZones.inner) return translate('game.progress.needOuter');
+  if (state.exploredZones.outer) return translate('game.progress.needInner');
+  return translate('game.progress.needBoth');
 }

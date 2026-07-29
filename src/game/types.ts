@@ -1,24 +1,31 @@
-export interface Point {
-  x: number;
-  y: number;
-}
+export type OrbitZone = "inner" | "reference" | "outer";
 
-export type OrbitChangeLevel = "stable" | "small" | "large";
+export interface ExploredOrbitZones {
+  inner: boolean;
+  outer: boolean;
+}
 
 export interface OrbitGameState {
   planetId: string;
-  startPosition: Point;
-  currentPosition: Point;
-  displacement: number;
-  changeLevel: OrbitChangeLevel;
+  radiusRatio: number;
+  zone: OrbitZone;
+  exploredZones: ExploredOrbitZones;
   score: number;
   completed: boolean;
 }
 
+export interface OrbitObservation {
+  radiusRatio: number;
+  periodRatio: number;
+  speedRatio: number;
+  zone: OrbitZone;
+}
+
 export interface GameResult {
   planetId: string;
-  displacement: number;
-  changeLevel: OrbitChangeLevel;
+  radiusRatio: number;
+  zone: OrbitZone;
+  exploredZones: ExploredOrbitZones;
   score: number;
   success: boolean;
 }
