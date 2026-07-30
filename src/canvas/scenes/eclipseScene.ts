@@ -209,17 +209,23 @@ function drawOverview(
     compact ? 72 : 100,
     Math.min(width * 0.25, 190)
   );
-  const alignmentOffset =
-    Math.sin(progress * Math.PI * 2) *
-    Math.min(compact ? 35 : 64, Math.max(24, height * 0.1));
+  const moonOrbitYRadius = compact ? 38 : 58;
+  // 日食在月球运行到地球朝向太阳的一侧发生，月食则在背向太阳的一侧发生。
+  // 两种模式都从食甚附近开始，但月球始终沿完整椭圆轨道绕地球运行。
+  const orbitAngle =
+    progress * Math.PI * 2 + (kind === 'lunar' ? Math.PI : 0);
   const moon = {
-    x: kind === 'solar' ? earth.x - moonOrbitRadius : earth.x + moonOrbitRadius,
-    y: centerY + alignmentOffset,
+    x: earth.x + Math.cos(orbitAngle) * moonOrbitRadius,
+    y: earth.y + Math.sin(orbitAngle) * moonOrbitYRadius,
   };
-  const alignment = 1 - clamp(Math.abs(alignmentOffset) / 64, 0, 1);
+  const eclipseSide = kind === 'solar' ? -1 : 1;
+  const alignment = Math.pow(
+    clamp((1 + eclipseSide * Math.cos(orbitAngle)) / 2, 0, 1),
+    3
+  );
 
   drawLightBeams(ctx, sun, width, height);
-  drawMoonOrbit(ctx, earth, moonOrbitRadius, compact);
+  drawMoonOrbit(ctx, earth, moonOrbitRadius, moonOrbitYRadius);
 
   if (kind === 'solar') {
     drawShadowCone(ctx, moon, earth, 14, 29, alignment, '#11172a');
@@ -383,8 +389,8 @@ function drawLightBeams(
 function drawMoonOrbit(
   ctx: CanvasRenderingContext2D,
   earth: { x: number; y: number },
-  radius: number,
-  compact: boolean
+  radiusX: number,
+  radiusY: number
 ): void {
   ctx.save();
   ctx.strokeStyle = 'rgba(160, 183, 228, 0.28)';
@@ -394,8 +400,8 @@ function drawMoonOrbit(
   ctx.ellipse(
     earth.x,
     earth.y,
-    radius,
-    compact ? 38 : 58,
+    radiusX,
+    radiusY,
     0,
     0,
     Math.PI * 2
