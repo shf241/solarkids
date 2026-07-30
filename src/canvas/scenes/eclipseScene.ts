@@ -306,7 +306,8 @@ function drawEarthView(
 
     drawSun(ctx, centerX, centerY, sunRadius, 0, skinType);
     drawMoon(ctx, moonX, moonY, moonRadius, 0, skinType);
-    ctx.fillStyle = 'rgba(4, 7, 15, 0.93)';
+    // 从地球观察日食时，月球背光面应完全遮住其表面纹理。
+    ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(moonX, moonY, moonRadius * 0.96, 0, Math.PI * 2);
     ctx.fill();
