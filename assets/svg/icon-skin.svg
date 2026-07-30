@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Skin picker</title>
+  <path d="M24 6a18 18 0 0 0 0 36h2.5a3.5 3.5 0 0 0 2.4-6.1l-1.1-1a3.4 3.4 0 0 1 2.3-5.9H34a8 8 0 0 0 8-8C42 12.7 34.2 6 24 6z" fill="#5bc0eb"/>
+  <circle cx="17" cy="17" r="3.5" fill="#f7c948"/>
+  <circle cx="27" cy="15" r="3.5" fill="#ff9f43"/>
+  <circle cx="14" cy="27" r="3.5" fill="#4cd964"/>
+  <circle cx="25" cy="25" r="3.5" fill="#ff5e5e"/>
+</svg>
+

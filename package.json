@@ -1,0 +1,19 @@
+{
+  "name": "solarkids",
+  "version": "0.1.0",
+  "description": "SolarKids 天体运行少儿教学软件",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "serve": "npx serve .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
