@@ -222,12 +222,28 @@ function drawSunFieldFocus(
   translate: (key: string) => string,
 ): void {
   const compact = width < 620;
+  const mobile = width < 480;
   const center = {
     x: width * 0.5,
     y: (compact ? 118 : 130) + (height - (compact ? 178 : 205)) * 0.48,
   };
   const radius = Math.min(width, height) * (compact ? 0.1 : 0.13);
   const activity = 0.5 + Math.sin(elapsed * 1.25) * 0.5;
+  const activityDescription = translate('magnetic.sun.activity').replace(
+    '{value}',
+    translate(
+      activity > 0.68
+        ? 'magnetic.activity.active'
+        : activity > 0.34
+          ? 'magnetic.activity.steady'
+          : 'magnetic.activity.weak',
+    ),
+  );
+  const sunFacts = [
+    translate('magnetic.sun.fact1'),
+    translate('magnetic.sun.fact2'),
+    activityDescription,
+  ];
 
   drawDipoleField(
     ctx,
@@ -244,25 +260,13 @@ function drawSunFieldFocus(
 
   drawInfoPanel(
     ctx,
-    compact ? 14 : 28,
-    compact ? 122 : 140,
-    compact ? width - 28 : Math.min(270, width * 0.3),
+    mobile ? Math.max(28, (width - 300) / 2) : compact ? 14 : 28,
+    mobile ? 116 : compact ? 122 : 140,
+    mobile ? Math.min(width - 56, 300) : compact ? width - 28 : Math.min(270, width * 0.3),
     translate('magnetic.sun.title'),
-    [
-      translate('magnetic.sun.fact1'),
-      translate('magnetic.sun.fact2'),
-      translate('magnetic.sun.activity').replace(
-        '{value}',
-        translate(
-          activity > 0.68
-            ? 'magnetic.activity.active'
-            : activity > 0.34
-              ? 'magnetic.activity.steady'
-              : 'magnetic.activity.weak',
-        ),
-      ),
-    ],
-    SUN_ACCENT
+    mobile ? [sunFacts[0], sunFacts[2]] : sunFacts,
+    SUN_ACCENT,
+    mobile
   );
   drawInfoChip(
     ctx,
@@ -282,6 +286,7 @@ function drawEarthFieldFocus(
   translate: (key: string) => string,
 ): void {
   const compact = width < 620;
+  const mobile = width < 480;
   const center = {
     x: width * 0.5,
     y: (compact ? 118 : 130) + (height - (compact ? 178 : 205)) * 0.5,
@@ -296,16 +301,17 @@ function drawEarthFieldFocus(
 
   drawInfoPanel(
     ctx,
-    compact ? 14 : 28,
+    mobile ? Math.max(18, (width - 330) / 2) : compact ? 14 : 28,
     compact ? 122 : 140,
-    compact ? width - 28 : Math.min(282, width * 0.32),
+    mobile ? Math.min(width - 36, 330) : compact ? width - 28 : Math.min(282, width * 0.32),
     translate('magnetic.earth.title'),
     [
       translate('magnetic.earth.fact1'),
       translate('magnetic.earth.fact2'),
       translate('magnetic.earth.fact3'),
     ],
-    EARTH_ACCENT
+    EARTH_ACCENT,
+    mobile
   );
   drawInfoChip(
     ctx,
@@ -616,11 +622,12 @@ function drawInfoPanel(
   width: number,
   title: string,
   lines: readonly string[],
-  accent: string
+  accent: string,
+  compact = false
 ): void {
-  const lineHeight = 19;
-  const height = 50 + lines.length * lineHeight;
-  roundedRect(ctx, x, y, width, height, 14);
+  const lineHeight = compact ? 14 : 19;
+  const height = (compact ? 36 : 50) + lines.length * lineHeight;
+  roundedRect(ctx, x, y, width, height, compact ? 12 : 14);
   ctx.fillStyle = 'rgba(7, 15, 40, 0.82)';
   ctx.fill();
   ctx.strokeStyle = withAlpha(accent, 0.52);
@@ -628,19 +635,19 @@ function drawInfoPanel(
   ctx.stroke();
 
   ctx.fillStyle = accent;
-  ctx.font = '700 13px "Microsoft YaHei", sans-serif';
+  ctx.font = `700 ${compact ? 11 : 13}px "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText(title, x + 14, y + 13);
+  ctx.fillText(title, x + (compact ? 11 : 14), y + (compact ? 8 : 13));
 
   ctx.fillStyle = 'rgba(226, 236, 255, 0.8)';
-  ctx.font = '11px "Microsoft YaHei", sans-serif';
+  ctx.font = `${compact ? 9 : 11}px "Microsoft YaHei", sans-serif`;
   lines.forEach((line, index) => {
     ctx.fillText(
       `• ${line}`,
-      x + 14,
-      y + 40 + index * lineHeight,
-      width - 28
+      x + (compact ? 11 : 14),
+      y + (compact ? 26 : 40) + index * lineHeight,
+      width - (compact ? 22 : 28)
     );
   });
 }

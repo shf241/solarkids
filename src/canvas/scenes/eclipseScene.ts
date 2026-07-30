@@ -142,11 +142,11 @@ export function createEclipseScene(options: EclipseSceneOptions): CanvasScene {
         context.context2D,
         width,
         height,
-        progress,
+        0.5 + Math.sin(progress * Math.PI * 2) * 0.5,
         [
-          translate('eclipse.timeline.start'),
+          '',
           translate('eclipse.timeline.align'),
-          translate('eclipse.timeline.end'),
+          '',
         ],
         ACCENT
       );
@@ -210,19 +210,19 @@ function drawOverview(
     Math.min(width * 0.25, 190)
   );
   const moonOrbitYRadius = compact ? 38 : 58;
-  // 日食在月球运行到地球朝向太阳的一侧发生，月食则在背向太阳的一侧发生。
-  // 两种模式都从食甚附近开始，但月球始终沿完整椭圆轨道绕地球运行。
-  const orbitAngle =
-    progress * Math.PI * 2 + (kind === 'lunar' ? Math.PI : 0);
-  const moon = {
-    x: earth.x + Math.cos(orbitAngle) * moonOrbitRadius,
-    y: earth.y + Math.sin(orbitAngle) * moonOrbitYRadius,
-  };
+  // 全景只演示食甚附近的一小段轨道，与地球视角中的往返遮挡保持一致。
+  // 横坐标由椭圆方程计算，因此月球会上下沿弧线移动，而不是走直线。
+  const phaseOffset = Math.sin(progress * Math.PI * 2);
+  const orbitArcY = phaseOffset * moonOrbitYRadius * 0.64;
+  const normalizedOrbitY = orbitArcY / moonOrbitYRadius;
+  const orbitArcX =
+    moonOrbitRadius * Math.sqrt(Math.max(0, 1 - normalizedOrbitY ** 2));
   const eclipseSide = kind === 'solar' ? -1 : 1;
-  const alignment = Math.pow(
-    clamp((1 + eclipseSide * Math.cos(orbitAngle)) / 2, 0, 1),
-    3
-  );
+  const moon = {
+    x: earth.x + eclipseSide * orbitArcX,
+    y: earth.y + orbitArcY,
+  };
+  const alignment = 1 - clamp(Math.abs(phaseOffset), 0, 1);
 
   drawLightBeams(ctx, sun, width, height);
   drawMoonOrbit(ctx, earth, moonOrbitRadius, moonOrbitYRadius);
@@ -551,20 +551,20 @@ function drawMoon(
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
-  }
 
-  ctx.fillStyle =
-    lunarTint > 0.4
-      ? `rgba(132, 43, 28, ${Math.min(0.52, lunarTint * 0.55)})`
-      : 'rgba(53, 58, 69, 0.22)';
-  for (const [dx, dy, size] of [
-    [-0.28, -0.18, 0.16],
-    [0.24, -0.08, 0.12],
-    [-0.02, 0.3, 0.1],
-  ] as const) {
-    ctx.beginPath();
-    ctx.arc(x + radius * dx, y + radius * dy, radius * size, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle =
+      lunarTint > 0.4
+        ? `rgba(132, 43, 28, ${Math.min(0.52, lunarTint * 0.55)})`
+        : 'rgba(53, 58, 69, 0.22)';
+    for (const [dx, dy, size] of [
+      [-0.28, -0.18, 0.16],
+      [0.24, -0.08, 0.12],
+      [-0.02, 0.3, 0.1],
+    ] as const) {
+      ctx.beginPath();
+      ctx.arc(x + radius * dx, y + radius * dy, radius * size, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
