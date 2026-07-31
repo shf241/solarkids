@@ -272,7 +272,27 @@ export function drawSkinnedBody(
   const scale = planetId === 'sun' ? 2.45 : 2;
   const size = radius * scale;
   ctx.save();
-  if (planetId === 'moon' && skinType === 'png') {
+  if (planetId === 'sun' && skinType === 'png') {
+    const sourceX = image.naturalWidth * 0.077;
+    const sourceY = image.naturalHeight * 0.057;
+    const sourceWidth = image.naturalWidth * 0.894;
+    const sourceHeight = image.naturalHeight * 0.943;
+    const bodyRadius = radius * 1.08;
+    ctx.beginPath();
+    ctx.arc(x, y, bodyRadius, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(
+      image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      x - bodyRadius,
+      y - bodyRadius,
+      bodyRadius * 2,
+      bodyRadius * 2
+    );
+  } else if (planetId === 'moon' && skinType === 'png') {
     const sourceSize = Math.min(image.naturalWidth, image.naturalHeight);
     const sourceX = (image.naturalWidth - sourceSize) / 2;
     const sourceY = (image.naturalHeight - sourceSize) / 2;
