@@ -22,6 +22,10 @@ type MagneticMode = 'compare' | 'sun-field' | 'earth-field';
 
 const SUN_ACCENT = '#ffb34d';
 const EARTH_ACCENT = '#58d8ff';
+const TAU = Math.PI * 2;
+const SUN_ROTATION_SPEED = 0.34;
+const EARTH_ROTATION_SPEED = 0.82;
+const EARTH_ORBIT_SPEED = 0.28;
 
 export interface MagneticSceneOptions {
   getSkinType: () => SkinType;
@@ -179,23 +183,77 @@ function drawComparison(
   const compact = width < 620;
   const centerY = (compact ? 118 : 132) + (height - (compact ? 180 : 205)) * 0.48;
   const sun = {
-    x: width * (compact ? 0.22 : 0.25),
+    x: width * (compact ? 0.42 : 0.38),
     y: centerY,
     radius: Math.min(width, height) * (compact ? 0.07 : 0.085),
   };
+  const orbitAngle = elapsed * EARTH_ORBIT_SPEED;
+  const orbitRadiusX = width * (compact ? 0.27 : 0.28);
+  const orbitRadiusY = Math.min(
+    height * (compact ? 0.14 : 0.18),
+    width * (compact ? 0.18 : 0.14)
+  );
   const earth = {
-    x: width * (compact ? 0.76 : 0.73),
-    y: centerY,
+    x: sun.x + Math.cos(orbitAngle) * orbitRadiusX,
+    y: centerY + Math.sin(orbitAngle) * orbitRadiusY,
     radius: Math.max(18, Math.min(width, height) * (compact ? 0.038 : 0.044)),
   };
+  const sunRotation = elapsed * SUN_ROTATION_SPEED;
+  const earthRotation = elapsed * EARTH_ROTATION_SPEED;
+  const sunAxisAngle = Math.sin(sunRotation) * 0.28;
+  const earthAxisAngle = -0.19 + Math.sin(earthRotation) * 0.22;
+  const sunActivity = 0.5 + Math.sin(elapsed * 1.25) * 0.5;
 
+  drawOrbitPath(
+    ctx,
+    sun,
+    orbitRadiusX,
+    orbitRadiusY,
+    orbitAngle,
+    earth.radius
+  );
   drawSolarWind(ctx, sun, earth, elapsed, width);
-  drawDipoleField(ctx, sun, sun.radius, SUN_ACCENT, elapsed, 0.8, 1.18);
-  drawDipoleField(ctx, earth, earth.radius, EARTH_ACCENT, elapsed, 1.25, 1.45);
-  drawSunBody(ctx, sun.x, sun.y, sun.radius, elapsed, skinType);
-  drawEarthBody(ctx, earth.x, earth.y, earth.radius, skinType);
-  drawPoles(ctx, sun, sun.radius, SUN_ACCENT);
-  drawPoles(ctx, earth, earth.radius, EARTH_ACCENT);
+  drawDipoleField(
+    ctx,
+    sun,
+    sun.radius,
+    SUN_ACCENT,
+    elapsed,
+    0.8,
+    1.08 + sunActivity * 0.2,
+    sunAxisAngle
+  );
+  drawDipoleField(
+    ctx,
+    earth,
+    earth.radius,
+    EARTH_ACCENT,
+    elapsed,
+    1.25,
+    1.45,
+    earthAxisAngle
+  );
+  drawSunBody(
+    ctx,
+    sun.x,
+    sun.y,
+    sun.radius,
+    elapsed,
+    skinType,
+    sunRotation
+  );
+  drawEarthBody(
+    ctx,
+    earth.x,
+    earth.y,
+    earth.radius,
+    skinType,
+    earthRotation
+  );
+  drawRotationCue(ctx, sun, sun.radius, sunRotation, SUN_ACCENT);
+  drawRotationCue(ctx, earth, earth.radius, earthRotation, EARTH_ACCENT);
+  drawPoles(ctx, sun, sun.radius, SUN_ACCENT, sunAxisAngle);
+  drawPoles(ctx, earth, earth.radius, EARTH_ACCENT, earthAxisAngle);
 
   drawBodyLabel(ctx, translate('solarWind.sun'), sun.x, sun.y + sun.radius + 12);
   drawBodyLabel(ctx, translate('solarWind.earth'), earth.x, earth.y + earth.radius + 12);
@@ -229,6 +287,8 @@ function drawSunFieldFocus(
   };
   const radius = Math.min(width, height) * (compact ? 0.1 : 0.13);
   const activity = 0.5 + Math.sin(elapsed * 1.25) * 0.5;
+  const rotation = elapsed * SUN_ROTATION_SPEED;
+  const axisAngle = Math.sin(rotation) * 0.28;
   const activityDescription = translate('magnetic.sun.activity').replace(
     '{value}',
     translate(
@@ -252,10 +312,12 @@ function drawSunFieldFocus(
     SUN_ACCENT,
     elapsed,
     0.72 + activity * 0.25,
-    1.45
+    1.45,
+    axisAngle
   );
-  drawSunBody(ctx, center.x, center.y, radius, elapsed, skinType);
-  drawPoles(ctx, center, radius, SUN_ACCENT);
+  drawSunBody(ctx, center.x, center.y, radius, elapsed, skinType, rotation);
+  drawRotationCue(ctx, center, radius, rotation, SUN_ACCENT);
+  drawPoles(ctx, center, radius, SUN_ACCENT, axisAngle);
   drawBodyLabel(ctx, translate('magnetic.sun.label'), center.x, center.y + radius + 16);
 
   drawInfoPanel(
@@ -292,11 +354,23 @@ function drawEarthFieldFocus(
     y: (compact ? 118 : 130) + (height - (compact ? 178 : 205)) * 0.5,
   };
   const radius = Math.min(width, height) * (compact ? 0.075 : 0.09);
+  const rotation = elapsed * EARTH_ROTATION_SPEED;
+  const axisAngle = -0.19 + Math.sin(rotation) * 0.22;
 
-  drawMagnetosphere(ctx, center, radius, width, elapsed);
-  drawDipoleField(ctx, center, radius, EARTH_ACCENT, elapsed, 1.2, 1.75);
-  drawEarthBody(ctx, center.x, center.y, radius, skinType);
-  drawPoles(ctx, center, radius, EARTH_ACCENT);
+  drawMagnetosphere(ctx, center, radius, width, elapsed, axisAngle);
+  drawDipoleField(
+    ctx,
+    center,
+    radius,
+    EARTH_ACCENT,
+    elapsed,
+    1.2,
+    1.75,
+    axisAngle
+  );
+  drawEarthBody(ctx, center.x, center.y, radius, skinType, rotation);
+  drawRotationCue(ctx, center, radius, rotation, EARTH_ACCENT);
+  drawPoles(ctx, center, radius, EARTH_ACCENT, axisAngle);
   drawBodyLabel(ctx, translate('magnetic.earth.label'), center.x, center.y + radius + 16);
 
   drawInfoPanel(
@@ -329,9 +403,13 @@ function drawDipoleField(
   color: string,
   elapsed: number,
   speed: number,
-  spreadScale: number
+  spreadScale: number,
+  axisAngle = 0
 ): void {
   ctx.save();
+  ctx.translate(center.x, center.y);
+  ctx.rotate(axisAngle);
+  ctx.translate(-center.x, -center.y);
   ctx.lineWidth = 1.25;
   ctx.globalCompositeOperation = 'lighter';
 
@@ -405,19 +483,29 @@ function drawSolarWind(
   elapsed: number,
   width: number
 ): void {
-  const startX = sun.x + sun.radius * 1.5;
-  const endX = earth.x - earth.radius * 2.8;
-  const distance = Math.max(1, endX - startX);
+  const offsetX = earth.x - sun.x;
+  const offsetY = earth.y - sun.y;
+  const centerDistance = Math.max(1, Math.hypot(offsetX, offsetY));
+  const directionX = offsetX / centerDistance;
+  const directionY = offsetY / centerDistance;
+  const normalX = -directionY;
+  const normalY = directionX;
+  const startDistance = sun.radius * 1.45;
+  const endDistance = Math.max(
+    startDistance + 1,
+    centerDistance - earth.radius * 2.4
+  );
 
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let index = 0; index < 18; index += 1) {
     const progress = (elapsed * 0.12 + index / 18) % 1;
-    const x = startX + progress * distance;
-    const y =
-      sun.y +
+    const distance = startDistance + progress * (endDistance - startDistance);
+    const wave =
       Math.sin(index * 2.17 + elapsed * 1.3) *
-        Math.min(44, width * 0.055);
+      Math.min(44, width * 0.055);
+    const x = sun.x + directionX * distance + normalX * wave;
+    const y = sun.y + directionY * distance + normalY * wave;
     ctx.fillStyle = `rgba(217, 243, 255, ${0.22 + progress * 0.55})`;
     ctx.beginPath();
     ctx.arc(x, y, 1.3 + (index % 3) * 0.45, 0, Math.PI * 2);
@@ -425,10 +513,52 @@ function drawSolarWind(
     ctx.strokeStyle = 'rgba(153, 223, 255, 0.24)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(x - 11, y);
-    ctx.lineTo(x - 3, y);
+    ctx.moveTo(x - directionX * 11, y - directionY * 11);
+    ctx.lineTo(x - directionX * 3, y - directionY * 3);
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawOrbitPath(
+  ctx: CanvasRenderingContext2D,
+  center: Point2D,
+  radiusX: number,
+  radiusY: number,
+  orbitAngle: number,
+  earthRadius: number
+): void {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(134, 188, 255, 0.28)';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([7, 8]);
+  ctx.beginPath();
+  ctx.ellipse(center.x, center.y, radiusX, radiusY, 0, 0, TAU);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const trailLength = 0.72;
+  const trail = ctx.createLinearGradient(
+    center.x + Math.cos(orbitAngle - trailLength) * radiusX,
+    center.y + Math.sin(orbitAngle - trailLength) * radiusY,
+    center.x + Math.cos(orbitAngle) * radiusX,
+    center.y + Math.sin(orbitAngle) * radiusY
+  );
+  trail.addColorStop(0, 'rgba(88, 216, 255, 0)');
+  trail.addColorStop(1, 'rgba(88, 216, 255, 0.78)');
+  ctx.strokeStyle = trail;
+  ctx.lineWidth = Math.max(2, earthRadius * 0.08);
+  ctx.beginPath();
+  ctx.ellipse(
+    center.x,
+    center.y,
+    radiusX,
+    radiusY,
+    0,
+    orbitAngle - trailLength,
+    orbitAngle
+  );
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -437,7 +567,8 @@ function drawMagnetosphere(
   center: Point2D,
   radius: number,
   width: number,
-  elapsed: number
+  elapsed: number,
+  axisAngle = 0
 ): void {
   const pulse = 1 + Math.sin(elapsed * 1.4) * 0.035;
   const shield = ctx.createRadialGradient(
@@ -458,7 +589,7 @@ function drawMagnetosphere(
     center.y,
     Math.min(radius * 4.2 * pulse, width * 0.34),
     radius * 3.1 * pulse,
-    0,
+    axisAngle,
     0,
     Math.PI * 2
   );
@@ -471,7 +602,8 @@ function drawSunBody(
   y: number,
   radius: number,
   elapsed: number,
-  skinType: SkinType
+  skinType: SkinType,
+  rotation = 0
 ): void {
   const pulse = 1 + Math.sin(elapsed * 1.8) * 0.035;
   const glow = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius * 2.2);
@@ -483,7 +615,12 @@ function drawSunBody(
   ctx.arc(x, y, radius * 2.2 * pulse, 0, Math.PI * 2);
   ctx.fill();
 
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.translate(-x, -y);
   const hasTexture = drawSkinnedBody(ctx, 'sun', skinType, x, y, radius);
+  ctx.restore();
   if (!hasTexture) {
     const body = ctx.createRadialGradient(
       x - radius * 0.3,
@@ -523,9 +660,17 @@ function drawEarthBody(
   x: number,
   y: number,
   radius: number,
-  skinType: SkinType
+  skinType: SkinType,
+  rotation = 0
 ): void {
-  if (drawSkinnedBody(ctx, 'earth', skinType, x, y, radius)) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.translate(-x, -y);
+  if (drawSkinnedBody(ctx, 'earth', skinType, x, y, radius)) {
+    ctx.restore();
+    return;
+  }
   const body = ctx.createRadialGradient(
     x - radius * 0.35,
     y - radius * 0.35,
@@ -563,14 +708,20 @@ function drawEarthBody(
     Math.PI * 2
   );
   ctx.fill();
+  ctx.restore();
 }
 
 function drawPoles(
   ctx: CanvasRenderingContext2D,
   center: Point2D,
   radius: number,
-  accent: string
+  accent: string,
+  axisAngle = 0
 ): void {
+  ctx.save();
+  ctx.translate(center.x, center.y);
+  ctx.rotate(axisAngle);
+  ctx.translate(-center.x, -center.y);
   ctx.font = `700 ${Math.max(10, radius * 0.28)}px "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -588,6 +739,55 @@ function drawPoles(
   ctx.fill();
   ctx.fillStyle = '#260916';
   ctx.fillText('S', center.x, center.y + radius * 0.82);
+  ctx.restore();
+}
+
+function drawRotationCue(
+  ctx: CanvasRenderingContext2D,
+  center: Point2D,
+  radius: number,
+  rotation: number,
+  accent: string
+): void {
+  const orbitRadiusX = radius * 0.92;
+  const orbitRadiusY = Math.max(3, radius * 0.24);
+  const markerX = center.x + Math.cos(rotation) * orbitRadiusX;
+  const markerY = center.y + Math.sin(rotation) * orbitRadiusY;
+  const markerRadius = Math.max(2.5, radius * 0.075);
+
+  ctx.save();
+  ctx.strokeStyle = withAlpha(accent, 0.56);
+  ctx.lineWidth = Math.max(1, radius * 0.025);
+  ctx.setLineDash([Math.max(2, radius * 0.08), Math.max(3, radius * 0.1)]);
+  ctx.beginPath();
+  ctx.ellipse(
+    center.x,
+    center.y,
+    orbitRadiusX,
+    orbitRadiusY,
+    0,
+    0,
+    TAU
+  );
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const glow = ctx.createRadialGradient(
+    markerX,
+    markerY,
+    0,
+    markerX,
+    markerY,
+    markerRadius * 2.5
+  );
+  glow.addColorStop(0, '#ffffff');
+  glow.addColorStop(0.38, accent);
+  glow.addColorStop(1, withAlpha(accent, 0));
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(markerX, markerY, markerRadius * 2.5, 0, TAU);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawLegend(
