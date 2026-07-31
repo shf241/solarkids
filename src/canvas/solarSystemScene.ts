@@ -893,31 +893,86 @@ const BODY_VISIT_CONTENT: Readonly<Record<string, BodyVisitContent>> = {
   },
 };
 
-const SUMMARY_EN: Record<string, string> = {
-  sun: 'The Sun is the star at the center of our solar system, providing light and heat that supports life on Earth.',
-  mercury: 'Mercury is the closest planet to the Sun and the smallest of the eight planets.',
-  venus: 'Venus is similar in size to Earth but is blanketed by thick clouds and a runaway greenhouse effect.',
-  earth: 'Earth is the third planet from the Sun and the only world known to support life.',
-  moon: 'The Moon is Earth\'s only natural satellite and the only extraterrestrial body visited by humans.',
-  mars: 'Mars is a cold, red rocky planet that preserves evidence of ancient flowing water.',
-  jupiter: 'Jupiter is the largest planet in the solar system, whose gravity influences many moons and small bodies.',
-  saturn: 'Saturn is famous for its bright ring system and is the second largest planet.',
-  uranus: 'Uranus is a pale blue ice giant that spins almost on its side as it orbits the Sun.',
-  neptune: 'Neptune is the farthest planet from the Sun, with the strongest winds in the solar system.',
-  pluto: 'Pluto is a distant dwarf planet visited up close for the first time in 2015.',
+const BODY_VISIT_CONTENT_EN: Record<string, BodyVisitContent> = {
+  sun: {
+    summary: 'The Sun is the star at the center of our solar system, providing light and heat that supports life on Earth.',
+    summaryStats: [{ label: 'Type', value: 'Yellow Dwarf' },{ label: 'Diameter', value: '~1.39 million km' },{ label: 'Surface Temp.', value: '~5,500°C' },{ label: 'Age', value: '~4.6 billion years' }],
+    detailStats: [{ label: 'Rotation', value: '~25–35 days' },{ label: 'Core Temp.', value: '~15 million °C' },{ label: 'Composition', value: 'Hydrogen, Helium' },{ label: 'Energy Source', value: 'Nuclear fusion' }],
+    sections: [{ title: 'Stellar Core', content: 'Hydrogen fuses into helium in the core, releasing enormous energy as light and heat.' },{ title: 'Layered Structure', content: 'The Sun consists of the core, radiative zone, convective zone, photosphere, chromosphere, and corona.' },{ title: 'Space Weather', content: 'Sunspots, flares, and coronal mass ejections affect interplanetary space and Earth\'s magnetic field.' }],
+  },
+  mercury: {
+    summary: 'Mercury is the closest planet to the Sun and the smallest of the eight planets.',
+    summaryStats: [{ label: 'Type', value: 'Rocky Planet' },{ label: 'Diameter', value: '4,879 km' },{ label: 'Distance from Sun', value: '0.39 AU' },{ label: 'Moons', value: 'None' }],
+    detailStats: [{ label: 'Orbit Period', value: '~88 days' },{ label: 'Rotation', value: '~58.6 days' },{ label: 'Surface Gravity', value: '3.70 m/s²' },{ label: 'Temperature', value: '~-180 to 430°C' }],
+    sections: [{ title: 'Cratered World', content: 'Mercury\'s surface is covered in ancient impact craters, similar in appearance to the Moon.' },{ title: 'Extreme Temperatures', content: 'The thin exosphere stores almost no heat, causing enormous temperature swings between day and night.' },{ title: '3:2 Resonance', content: 'Mercury rotates three times for every two orbits, a 3:2 spin-orbit resonance.' }],
+  },
+  venus: {
+    summary: 'Venus is similar in size to Earth but is blanketed by thick clouds and a runaway greenhouse effect.',
+    summaryStats: [{ label: 'Type', value: 'Rocky Planet' },{ label: 'Diameter', value: '12,104 km' },{ label: 'Distance from Sun', value: '0.72 AU' },{ label: 'Moons', value: 'None' }],
+    detailStats: [{ label: 'Orbit Period', value: '~224.7 days' },{ label: 'Rotation', value: '~243 days (retrograde)' },{ label: 'Surface Gravity', value: '8.87 m/s²' },{ label: 'Avg. Temperature', value: '~465°C' }],
+    sections: [{ title: 'Thick Atmosphere', content: 'The atmosphere is mostly carbon dioxide with sulfuric acid droplets in the clouds.' },{ title: 'Runaway Greenhouse', content: 'The heavy atmosphere traps heat, making the surface the hottest in the solar system.' },{ title: 'Retrograde Rotation', content: 'Venus spins backward compared to most planets, and a day lasts longer than a year.' }],
+  },
+  earth: {
+    summary: 'Earth is the third planet from the Sun and the only world known to support life.',
+    summaryStats: [{ label: 'Type', value: 'Rocky Planet' },{ label: 'Diameter', value: '12,742 km' },{ label: 'Distance from Sun', value: '1 AU' },{ label: 'Moons', value: 'Moon' }],
+    detailStats: [{ label: 'Orbit Period', value: '365.256 days' },{ label: 'Rotation', value: '23h 56min' },{ label: 'Surface Gravity', value: '9.81 m/s²' },{ label: 'Avg. Temperature', value: '~15°C' },{ label: 'Ocean Cover', value: '~71%' },{ label: 'Atmosphere', value: 'Nitrogen, Oxygen' }],
+    sections: [{ title: 'Blue Planet', content: 'Liquid water, moderate temperatures, and a protective atmosphere make Earth uniquely habitable.' },{ title: 'Magnetic Shield', content: 'Motion in the liquid outer core generates a global magnetic field that deflects solar wind.' },{ title: 'Seasons', content: 'Earth\'s rotation creates day and night, while its 23.4° axial tilt causes seasons.' }],
+  },
+  moon: {
+    summary: 'The Moon is Earth\'s only natural satellite and the first extraterrestrial body visited by humans.',
+    summaryStats: [{ label: 'Type', value: 'Rocky Moon' },{ label: 'Diameter', value: '3,475 km' },{ label: 'Distance from Earth', value: '~384,000 km' },{ label: 'Parent Planet', value: 'Earth' }],
+    detailStats: [{ label: 'Orbit Period', value: '~27.3 days' },{ label: 'Rotation', value: '~27.3 days' },{ label: 'Surface Gravity', value: '1.62 m/s²' },{ label: 'Temperature', value: '~-173 to 127°C' }],
+    sections: [{ title: 'Tidal Locking', content: 'The Moon rotates at nearly the same rate as it orbits, keeping roughly the same face toward Earth.' },{ title: 'Maria & Highlands', content: 'Dark maria are ancient lava plains; brighter highlands preserve more impact craters.' },{ title: 'Influence on Earth', content: 'The Moon\'s gravity is the main driver of ocean tides on Earth.' }],
+  },
+  mars: {
+    summary: 'Mars is a cold, red rocky planet that preserves evidence of ancient flowing water.',
+    summaryStats: [{ label: 'Type', value: 'Rocky Planet' },{ label: 'Diameter', value: '6,779 km' },{ label: 'Distance from Sun', value: '1.52 AU' },{ label: 'Moons', value: '2 (Phobos, Deimos)' }],
+    detailStats: [{ label: 'Orbit Period', value: '~687 days' },{ label: 'Rotation', value: '24h 37min' },{ label: 'Surface Gravity', value: '3.71 m/s²' },{ label: 'Avg. Temperature', value: '~-63°C' }],
+    sections: [{ title: 'Red Surface', content: 'Iron oxide (rust) in the soil gives Mars its distinctive reddish-brown color.' },{ title: 'Giant Features', content: 'Olympus Mons is the largest volcano, and Valles Marineris is the largest canyon system in the solar system.' },{ title: 'Clues of Water', content: 'Dry valleys, specific minerals, and polar ice caps suggest Mars was warmer and wetter in the past.' }],
+  },
+  jupiter: {
+    summary: 'Jupiter is the solar system\'s largest planet, with powerful gravity that influences many moons.',
+    summaryStats: [{ label: 'Type', value: 'Gas Giant' },{ label: 'Diameter', value: '~139,820 km' },{ label: 'Distance from Sun', value: '5.20 AU' },{ label: 'Moons', value: '90+' }],
+    detailStats: [{ label: 'Orbit Period', value: '~11.86 years' },{ label: 'Rotation', value: '~9h 56min' },{ label: 'Cloud-top Gravity', value: '24.79 m/s²' },{ label: 'Composition', value: 'Hydrogen, Helium' }],
+    sections: [{ title: 'Banded Atmosphere', content: 'Rapid rotation stretches the atmosphere into alternating light zones and dark belts.' },{ title: 'Great Red Spot', content: 'A giant anticyclonic storm larger than Earth that has persisted for centuries.' },{ title: 'Galilean Moons', content: 'Io, Europa, Ganymede, and Callisto — four large moons, each with unique geology.' }],
+  },
+  saturn: {
+    summary: 'Saturn is famous for its breathtaking ring system and is the second largest planet.',
+    summaryStats: [{ label: 'Type', value: 'Gas Giant' },{ label: 'Diameter', value: '~116,460 km' },{ label: 'Distance from Sun', value: '9.58 AU' },{ label: 'Moons', value: 'Many (Titan, Enceladus, etc.)' }],
+    detailStats: [{ label: 'Orbit Period', value: '~29.46 years' },{ label: 'Rotation', value: '~10h 42min' },{ label: 'Cloud-top Gravity', value: '10.44 m/s²' },{ label: 'Composition', value: 'Hydrogen, Helium' }],
+    sections: [{ title: 'Magnificent Rings', content: 'The rings consist mainly of ice particles, rock debris, and dust, with many fine gaps and divisions.' },{ title: 'Low Density', content: 'Saturn\'s average density is less than water — it would float in a large enough ocean.' },{ title: 'Moon Family', content: 'Titan has a thick nitrogen atmosphere; Enceladus sprays water-rich plumes from its subsurface ocean.' }],
+  },
+  uranus: {
+    summary: 'Uranus is an ice giant that spins almost completely on its side as it orbits the Sun.',
+    summaryStats: [{ label: 'Type', value: 'Ice Giant' },{ label: 'Diameter', value: '~50,724 km' },{ label: 'Distance from Sun', value: '19.2 AU' },{ label: 'Notable', value: '~98° axial tilt' }],
+    detailStats: [{ label: 'Orbit Period', value: '~84 years' },{ label: 'Rotation', value: '~17h 14min (retrograde)' },{ label: 'Cloud-top Gravity', value: '8.69 m/s²' },{ label: 'Atmosphere', value: 'H, He, Methane' }],
+    sections: [{ title: 'Sideways Spin', content: 'The extreme axial tilt gives Uranus decades-long seasons with dramatic sunlight variations.' },{ title: 'Pale Blue Color', content: 'Methane in the upper atmosphere absorbs red light, producing a pale blue-green hue.' },{ title: 'Faint Rings', content: 'Uranus also has several dark, narrow planetary rings.' }],
+  },
+  neptune: {
+    summary: 'Neptune is the farthest planet from the Sun, with the fastest winds in the solar system.',
+    summaryStats: [{ label: 'Type', value: 'Ice Giant' },{ label: 'Diameter', value: '~49,244 km' },{ label: 'Distance from Sun', value: '30.05 AU' },{ label: 'Moons', value: '10+ (Triton, etc.)' }],
+    detailStats: [{ label: 'Orbit Period', value: '~164.8 years' },{ label: 'Rotation', value: '~16h 7min' },{ label: 'Cloud-top Gravity', value: '11.15 m/s²' },{ label: 'Atmosphere', value: 'H, He, Methane' }],
+    sections: [{ title: 'Powerful Storms', content: 'Neptune hosts the fastest winds in the solar system, with dynamic dark spots and bright clouds.' },{ title: 'Deep Blue', content: 'Methane plus complex chemistry produce a deeper blue color than Uranus.' },{ title: 'Triton', content: 'Neptune\'s largest moon orbits backward and has ice volcanoes and a thin atmosphere.' }],
+  },
+  pluto: {
+    summary: 'Pluto is a distant dwarf planet first visited up close by the New Horizons probe in 2015.',
+    summaryStats: [{ label: 'Status', value: 'Dwarf Planet' },{ label: 'Diameter', value: '~2,377 km' },{ label: 'Distance from Sun', value: '39.5 AU' },{ label: 'Moons', value: '5 (Charon, etc.)' }],
+    detailStats: [{ label: 'Orbit Period', value: '~248 years' },{ label: 'Rotation', value: '~6.4 days (retrograde)' },{ label: 'Surface Gravity', value: '0.62 m/s²' },{ label: 'Avg. Temperature', value: '~-229°C' }],
+    sections: [{ title: 'New Horizons', content: 'The 2015 flyby revealed icy mountains, vast plains, and a thin nitrogen atmosphere.' },{ title: 'Icy World', content: 'The surface is covered in nitrogen, methane, and carbon monoxide ice with diverse geology.' },{ title: 'Eccentric Orbit', content: 'Pluto\'s highly tilted, elliptical orbit sometimes brings it closer to the Sun than Neptune.' }],
+  },
 };
 
 function getBodySummaryInfo(bodyId: string): PlanetInfo | null {
   const preview = getBodyPreview(bodyId);
-  const content = BODY_VISIT_CONTENT[bodyId];
+  const content = isEnglish() ? BODY_VISIT_CONTENT_EN[bodyId] : BODY_VISIT_CONTENT[bodyId];
   if (!preview || !content) return toPlanetInfo(preview);
   return {
     id: bodyId,
     name: preview.name,
     nameCN: localizeName(preview),
     emoji: preview.emoji,
-    desc: isEnglish() && SUMMARY_EN[bodyId] ? SUMMARY_EN[bodyId] : content.summary,
-    stats: isEnglish() ? content.summaryStats.map(s => ({ label: s.label, value: s.value })) : content.summaryStats,
+    desc: content.summary,
+    stats: content.summaryStats,
     actions: [
       {
         id: 'visit-body',
@@ -930,7 +985,7 @@ function getBodySummaryInfo(bodyId: string): PlanetInfo | null {
 
 function getBodyDetailInfo(bodyId: string): PlanetInfo | null {
   const preview = getBodyPreview(bodyId);
-  const content = BODY_VISIT_CONTENT[bodyId];
+  const content = isEnglish() ? BODY_VISIT_CONTENT_EN[bodyId] : BODY_VISIT_CONTENT[bodyId];
   if (!preview || !content) return getBodySummaryInfo(bodyId);
   const dragHint =
     bodyId === 'saturn'
