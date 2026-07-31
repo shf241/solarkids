@@ -222,9 +222,20 @@ function getActiveSaturnRingRenderer(
  *
  * 该场景是天体状态的唯一写入方。其他专题只读取 runtime.world 中的快照。
  */
+let _translate: ((key: string, fallback?: string) => string) | undefined;
+
+function t(key: string, fallback?: string): string {
+  return _translate?.(key) || fallback || key;
+}
+
+function isEnglish(): boolean {
+  return _translate?.('body.sun') !== '太阳';
+}
+
 export function createSolarSystemScene(
   callbacks: PreviewCallbacks
 ): CanvasScene {
+  _translate = callbacks.translate?.bind(callbacks) || undefined;
   const textureRenderers = {
     cartoon: createTextureRenderers(CARTOON_TEXTURES),
     realistic: createTextureRenderers(REALISTIC_TEXTURES),
@@ -372,7 +383,7 @@ export function createSolarSystemScene(
               },
             })
           );
-          callbacks.showToast(`🚀 正在接近${getBodyName(bodyId)}`);
+          callbacks.showToast(t('visitor.approaching', '🚀 正在接近{name}').replace('{name}', getBodyName(bodyId)));
         } else if (
           detail.actionId === 'leave-visit' &&
           state.visitingBodyId === bodyId
@@ -521,7 +532,7 @@ export function createSolarSystemScene(
             ? getBodyDetailInfo(bodyId)
             : getBodySummaryInfo(bodyId)
         );
-        callbacks.showToast(`你发现了${getBodyName(bodyId)}`);
+        callbacks.showToast(`${t('toast.planetFound', '你发现了')}${getBodyName(bodyId)}`);
         document.dispatchEvent(
           new CustomEvent('solarkids:bodySelected', {
             detail: { bodyId, sceneId: scene.id },
@@ -882,6 +893,20 @@ const BODY_VISIT_CONTENT: Readonly<Record<string, BodyVisitContent>> = {
   },
 };
 
+const SUMMARY_EN: Record<string, string> = {
+  sun: 'The Sun is the star at the center of our solar system, providing light and heat that supports life on Earth.',
+  mercury: 'Mercury is the closest planet to the Sun and the smallest of the eight planets.',
+  venus: 'Venus is similar in size to Earth but is blanketed by thick clouds and a runaway greenhouse effect.',
+  earth: 'Earth is the third planet from the Sun and the only world known to support life.',
+  moon: 'The Moon is Earth\'s only natural satellite and the only extraterrestrial body visited by humans.',
+  mars: 'Mars is a cold, red rocky planet that preserves evidence of ancient flowing water.',
+  jupiter: 'Jupiter is the largest planet in the solar system, whose gravity influences many moons and small bodies.',
+  saturn: 'Saturn is famous for its bright ring system and is the second largest planet.',
+  uranus: 'Uranus is a pale blue ice giant that spins almost on its side as it orbits the Sun.',
+  neptune: 'Neptune is the farthest planet from the Sun, with the strongest winds in the solar system.',
+  pluto: 'Pluto is a distant dwarf planet visited up close for the first time in 2015.',
+};
+
 function getBodySummaryInfo(bodyId: string): PlanetInfo | null {
   const preview = getBodyPreview(bodyId);
   const content = BODY_VISIT_CONTENT[bodyId];
@@ -889,14 +914,14 @@ function getBodySummaryInfo(bodyId: string): PlanetInfo | null {
   return {
     id: bodyId,
     name: preview.name,
-    nameCN: `正在探访${preview.nameCN}`,
+    nameCN: localizeName(preview),
     emoji: preview.emoji,
-    desc: content.summary,
-    stats: content.summaryStats,
+    desc: isEnglish() && SUMMARY_EN[bodyId] ? SUMMARY_EN[bodyId] : content.summary,
+    stats: isEnglish() ? content.summaryStats.map(s => ({ label: s.label, value: s.value })) : content.summaryStats,
     actions: [
       {
         id: 'visit-body',
-        label: `🚀 探访${preview.nameCN}`,
+        label: t('visitor.visit', '🚀 探访{name}').replace('{name}', localizeName(preview)),
         variant: 'primary',
       },
     ],
@@ -909,20 +934,20 @@ function getBodyDetailInfo(bodyId: string): PlanetInfo | null {
   if (!preview || !content) return getBodySummaryInfo(bodyId);
   const dragHint =
     bodyId === 'saturn'
-      ? '可按住球体或光环进行全方位观察'
-      : '可拖动球体全方位观察';
+      ? t('visitor.dragHintSaturn', '可按住球体或光环进行全方位观察')
+      : t('visitor.dragHintOther', '可拖动球体全方位观察');
   return {
     id: bodyId,
     name: preview.name,
-    nameCN: preview.nameCN,
+    nameCN: localizeName(preview),
     emoji: preview.emoji,
-    desc: `探访期间只显示${preview.nameCN}并冻结全部自动运动。${dragHint}，滚轮或双指缩放可以调整距离。`,
+    desc: `${t('visitor.onlyShowing', '探访期间只显示{name}').replace('{name}', localizeName(preview))}${t('visitor.motionFrozen', '并冻结全部自动运动')}。${dragHint}，${t('visitor.zoomHint', '滚轮或双指缩放可以调整距离')}`,
     stats: content.detailStats,
     sections: content.sections,
     actions: [
       {
         id: 'leave-visit',
-        label: '← 返回太阳系总览',
+        label: t('visitor.returnToOverview', '← 返回太阳系总览'),
         variant: 'secondary',
       },
     ],
@@ -1188,7 +1213,7 @@ function renderScene(
       );
     }
   }
-  drawHint(context2D, width, height);
+  drawHint(context2D, width, height, t('hint.clickPlanet', '点击一颗行星，看看它的小秘密'));
 }
 
 function drawOverviewBody(
@@ -1716,7 +1741,7 @@ function drawObserverBody(
     context2D.fillStyle = '#ffffff';
     context2D.shadowColor = 'rgba(0, 0, 0, 0.9)';
     context2D.shadowBlur = 5;
-    context2D.fillText(preview.nameCN, point.x, point.y + radius + 7);
+    context2D.fillText(localizeName(preview), point.x, point.y + radius + 7);
     context2D.restore();
   }
 }
@@ -1742,7 +1767,7 @@ function drawObserverHud(
     observerLatitude >= 0
       ? `${latitudeDegrees}°N`
       : `${latitudeDegrees}°S`;
-  const status = `地表观测 ${latitudeLabel} · 恒星时 ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} · 拖动环顾`;
+  const status = `${t('earthObs.label', '地表观测')} ${latitudeLabel} · ${t('earthObs.sidereal', '恒星时')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} · ${t('earthObs.dragToLook', '拖动环顾')}`;
   context2D.font =
     '500 12px "PingFang SC", "Microsoft YaHei", sans-serif';
   context2D.textAlign = 'center';
@@ -1757,7 +1782,7 @@ function drawObserverHud(
   const heading = normalizeAngle(Math.PI + lookYaw);
   context2D.fillStyle = 'rgba(159, 225, 255, 0.75)';
   context2D.fillText(
-    `观察方向：${formatCompassDirection(heading)}`,
+    `${t('earthObs.heading', '观察方向')}：${formatCompassDirection(heading)}`,
     width / 2,
     Math.max(30, Math.min(height - 10, horizonY + 40))
   );
@@ -2286,8 +2311,12 @@ function drawOrbitLegend(
   viewportHeight: number,
   hoveredOrbit: OrbitKind | null
 ): void {
-  const width = 124;
-  const height = 58;
+  const isMobile = viewportWidth < 768;
+  const width = isMobile ? 90 : 124;
+  const height = isMobile ? 40 : 58;
+  const fontSize = isMobile ? 9 : 12;
+  const rowY1 = isMobile ? 15 : 20;
+  const rowY2 = isMobile ? 30 : 40;
   const x = Math.max(8, viewportWidth - width - 14);
   const y = Math.max(8, viewportHeight - height - 14);
   context2D.save();
@@ -2301,19 +2330,21 @@ function drawOrbitLegend(
 
   drawLegendRow(
     context2D,
-    x + 12,
-    y + 20,
+    x + 10,
+    y + rowY1,
     EARTH_ORBIT_COLOR,
-    '地球轨道',
-    hoveredOrbit === 'earth'
+    t('orbit.earth', '地球轨道'),
+    hoveredOrbit === 'earth',
+    fontSize
   );
   drawLegendRow(
     context2D,
-    x + 12,
-    y + 40,
+    x + 10,
+    y + rowY2,
     MOON_ORBIT_COLOR,
-    '月球轨道',
-    hoveredOrbit === 'moon'
+    t('orbit.moon', '月球轨道'),
+    hoveredOrbit === 'moon',
+    fontSize
   );
   context2D.restore();
 }
@@ -2324,7 +2355,8 @@ function drawLegendRow(
   y: number,
   color: string,
   label: string,
-  highlighted: boolean
+  highlighted: boolean,
+  fontSize: number = 12
 ): void {
   context2D.save();
   context2D.strokeStyle = color;
@@ -2337,7 +2369,7 @@ function drawLegendRow(
   context2D.stroke();
   context2D.shadowBlur = 0;
   context2D.fillStyle = highlighted ? '#ffffff' : '#dce8ff';
-  context2D.font = `${highlighted ? 700 : 500} 12px "PingFang SC", "Microsoft YaHei", sans-serif`;
+  context2D.font = `${highlighted ? 700 : 500} ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
   context2D.textAlign = 'left';
   context2D.textBaseline = 'middle';
   context2D.fillText(label, x + 38, y);
@@ -2351,7 +2383,7 @@ function drawOrbitTooltip(
   viewportWidth: number,
   viewportHeight: number
 ): void {
-  const text = orbit === 'earth' ? '地球轨道' : '月球轨道';
+  const text = orbit === 'earth' ? t('orbit.earth', '地球轨道') : t('orbit.moon', '月球轨道');
   const color =
     orbit === 'earth' ? EARTH_ORBIT_COLOR : MOON_ORBIT_COLOR;
   context2D.save();
@@ -2416,7 +2448,10 @@ function normalizeAngle(angle: number): number {
 }
 
 function formatCompassDirection(azimuth: number): string {
-  const labels = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
+  const labels = [
+    t('compass.n', '北'), t('compass.ne', '东北'), t('compass.e', '东'), t('compass.se', '东南'),
+    t('compass.s', '南'), t('compass.sw', '西南'), t('compass.w', '西'), t('compass.nw', '西北'),
+  ];
   const index =
     Math.round(normalizeAngle(azimuth) / (Math.PI / 4)) % labels.length;
   return labels[index];
@@ -2491,8 +2526,14 @@ function getBodyPreview(bodyId: string): PlanetPreview | null {
   return PLANET_BY_ID.get(bodyId) ?? null;
 }
 
+function localizeName(preview: { name: string; nameCN: string }): string {
+  return isEnglish() ? preview.name : preview.nameCN;
+}
+
 function getBodyName(bodyId: string): string {
-  return getBodyPreview(bodyId)?.nameCN ?? '彗星';
+  const preview = getBodyPreview(bodyId);
+  if (!preview) return t('body.comet', '彗星');
+  return localizeName(preview);
 }
 
 function clamp(value: number, min: number, max: number): number {

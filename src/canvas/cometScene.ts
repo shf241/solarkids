@@ -56,7 +56,7 @@ const ACTIVE_TAIL_DISTANCE_AU = 12;
 /** 为教学画面压缩偏心率，避免近日点与太阳贴图重叠。 */
 const VISUAL_ECCENTRICITY = 0.82;
 
-const HALLEY_INFO: PlanetInfo = {
+const HALLEY_INFO_BASE: PlanetInfo = {
   id: 'comet',
   name: 'Halley’s Comet',
   nameCN: '哈雷彗星',
@@ -69,8 +69,31 @@ const HALLEY_INFO: PlanetInfo = {
   ],
 };
 
+function getHalleyInfo(): PlanetInfo {
+  if (!_cometEnglish) return HALLEY_INFO_BASE;
+  return {
+    ...HALLEY_INFO_BASE,
+    nameCN: 'Halley’s Comet',
+    desc: 'Comet Halley follows a highly elliptical orbit. As it approaches the Sun, solar heat releases icy material, making its tail longer and brighter.',
+    stats: [
+      { label: 'Orbital Period', value: '~75.3 years' },
+      { label: 'Perihelion', value: '~0.59 AU' },
+      { label: 'Aphelion', value: '~35.1 AU' },
+    ],
+  };
+}
+
+let _cometTranslate: ((key: string, fallback?: string) => string) | undefined;
+let _cometEnglish = false;
+
+function ct(key: string, fallback?: string): string {
+  return _cometTranslate?.(key) || fallback || key;
+}
+
 /** 模块5：哈雷彗星轨道、速度与动态彗尾场景。 */
 export function createCometScene(callbacks: PreviewCallbacks): CanvasScene {
+  _cometTranslate = callbacks.translate?.bind(callbacks) || undefined;
+  _cometEnglish = callbacks.translate?.('body.sun') !== '太阳';
   const initialOrbit = getHalleyOrbitState(0);
   const state: CometSceneState = {
     orbit: initialOrbit,
@@ -98,7 +121,7 @@ export function createCometScene(callbacks: PreviewCallbacks): CanvasScene {
       runtimeContext.camera.reset();
       updateState(runtimeContext, state, 0);
       centerCameraOnOrbit(runtimeContext, state.viewport);
-      callbacks.updatePanel(HALLEY_INFO);
+      callbacks.updatePanel(getHalleyInfo());
 
       toggleOrbitsHandler = event => {
         const visible = (
@@ -168,7 +191,7 @@ export function createCometScene(callbacks: PreviewCallbacks): CanvasScene {
       state.hovered = false;
       updateState(runtimeContext, state, 0);
       centerCameraOnOrbit(runtimeContext, state.viewport);
-      callbacks.updatePanel(HALLEY_INFO);
+      callbacks.updatePanel(getHalleyInfo());
     },
 
     exit(runtimeContext) {
@@ -466,8 +489,8 @@ function drawOrbit(
     },
     HALLEY_ORBIT.argumentOfPerihelion
   );
-  drawOrbitMarker(context2D, perihelion, '近日点 0.59 AU');
-  drawOrbitMarker(context2D, aphelion, '远日点 35.1 AU');
+  drawOrbitMarker(context2D, perihelion, `${ct('comet.perihelion', '近日点')} 0.59 AU`);
+  drawOrbitMarker(context2D, aphelion, `${ct('comet.aphelion', '远日点')} 35.1 AU`);
   context2D.restore();
 }
 
@@ -641,22 +664,22 @@ function drawStatusPanel(
   context2D.font =
     '700 14px "PingFang SC", "Microsoft YaHei", sans-serif';
   context2D.textAlign = 'left';
-  context2D.fillText('☄️ 哈雷彗星实时状态', x + 14, y + 23);
+  context2D.fillText(ct('comet.status', '☄️ 哈雷彗星实时状态'), x + 14, y + 23);
   context2D.fillStyle = '#c4d0e8';
   context2D.font =
     '12px "PingFang SC", "Microsoft YaHei", sans-serif';
   context2D.fillText(
-    `距太阳：${state.orbit.distanceAU.toFixed(2)} AU`,
+    `${ct('comet.distance', '距太阳')}：${state.orbit.distanceAU.toFixed(2)} AU`,
     x + 14,
     y + 46
   );
   context2D.fillText(
-    `彗尾活跃度：${Math.round(state.tail.activity * 100)}%`,
+    `${ct('comet.tailActivity', '彗尾活跃度')}：${Math.round(state.tail.activity * 100)}%`,
     x + 14,
     y + 66
   );
   context2D.fillText(
-    `时间倍率：${formatTimeScale(timeScale)}`,
+    `${ct('comet.timeScale', '时间倍率')}：${formatTimeScale(timeScale)}`,
     x + width - 104,
     y + 66
   );
@@ -688,18 +711,18 @@ function toLiveHalleyInfo(
   tail: CometTailAppearance
 ): PlanetInfo {
   return {
-    ...HALLEY_INFO,
+    ...getHalleyInfo(),
     stats: [
       {
-        label: '当前距离',
+        label: ct('comet.currentDistance', '当前距离'),
         value: `${orbit.distanceAU.toFixed(2)} AU`,
       },
       {
-        label: '彗尾活跃度',
+        label: ct('comet.tailActivity', '彗尾活跃度'),
         value: `${Math.round(tail.activity * 100)}%`,
       },
       {
-        label: '轨道进度',
+        label: ct('comet.orbitProgress', '轨道进度'),
         value: `${Math.round(orbit.progress * 100)}%`,
       },
     ],

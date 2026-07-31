@@ -639,7 +639,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   #side-panel {
-    max-height: 30vh;
+    max-height: 20vh;
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
