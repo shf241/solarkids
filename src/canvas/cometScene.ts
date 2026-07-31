@@ -69,8 +69,12 @@ const HALLEY_INFO_BASE: PlanetInfo = {
   ],
 };
 
+function cometIsEnglish(): boolean {
+  return _cometTranslate?.('body.sun') !== '太阳';
+}
+
 function getHalleyInfo(): PlanetInfo {
-  if (!_cometEnglish) return HALLEY_INFO_BASE;
+  if (!cometIsEnglish()) return HALLEY_INFO_BASE;
   return {
     ...HALLEY_INFO_BASE,
     nameCN: 'Halley’s Comet',
@@ -84,7 +88,6 @@ function getHalleyInfo(): PlanetInfo {
 }
 
 let _cometTranslate: ((key: string, fallback?: string) => string) | undefined;
-let _cometEnglish = false;
 
 function ct(key: string, fallback?: string): string {
   return _cometTranslate?.(key) || fallback || key;
@@ -93,7 +96,7 @@ function ct(key: string, fallback?: string): string {
 /** 模块5：哈雷彗星轨道、速度与动态彗尾场景。 */
 export function createCometScene(callbacks: PreviewCallbacks): CanvasScene {
   _cometTranslate = callbacks.translate?.bind(callbacks) || undefined;
-  _cometEnglish = callbacks.translate?.('body.sun') !== '太阳';
+
   const initialOrbit = getHalleyOrbitState(0);
   const state: CometSceneState = {
     orbit: initialOrbit,

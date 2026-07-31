@@ -1,166 +1,322 @@
 # SolarKids AI 开发说明书——成员2
 
-> 负责人：成员2（douwinddy）
->
-> 开发分支：`feature/ui-responsive`
->
+## 基本信息
+
+- 姓名：陶羿轩
+- 成员编号：成员2
+- 负责模块：UI 视觉系统、响应式布局、素材管理系统、公共 Canvas 绘制函数、皮肤切换、UI 工具库
+- 负责文档：`docs/AI开发说明书_成员2.md`、`docs/视觉设计说明.md`
+- 开发分支：`feature/ui-responsive`（后合并至 `dev`）
+- 开发时间：2026-07-22 至 2026-07-31
+
 > 本文随成员2开发分支提交到远程仓库，并在后续开发过程中持续更新。
 
-## 一、负责范围
+---
 
-成员2负责以下内容：
+## 一、产品设计过程
 
-- **UI 视觉系统**：整体配色方案、CSS 变量体系、深空主题风格。
-- **响应式布局**：PC（≥1024px）、iPad（768-1023px）、手机（<768px）三档断点。
-- **页面骨架**：`index.html` 结构、Canvas 容器、侧边信息面板、底部控制栏。
-- **素材管理系统**：皮肤配置加载、双套素材预加载与缓存、自动降级为 SVG 占位图。
-- **皮肤切换 UI**：卡通/写实两套皮肤的切换面板。
-- **公共绘制函数**：行星渲染、太阳渲染、星空背景、轨道计算等底层 Canvas 绘制。
-- **UI 工具库**：Toast 提示、Modal 弹窗、设备检测、控制栏事件绑定。
+### 1.1 负责内容
 
-详细任务边界以团队分工文档为准；本文只记录需要随代码共享的开发范围与 AI 协同情况。
+本人主要负责：
 
-## 二、AI 协同方式
+- UI 视觉系统：整体配色方案、CSS 变量体系、深空主题风格。
+- 响应式布局：PC（≥1024px）、iPad（768-1023px）、手机（<768px）三档断点。
+- 页面骨架：`index.html` 结构、Canvas 容器 `#canvas-container`、侧边信息面板 `#side-panel`、底部控制栏 `#control-bar`。
+- 素材管理系统：皮肤配置加载、双套素材预加载与缓存、自动降级为 SVG 占位图。
+- 皮肤切换 UI：卡通/写实两套皮肤的切换面板。
+- 公共绘制函数：行星渲染（`drawPlanet`）、太阳渲染（`drawSun`）、星空背景（`drawSpace`）、轨道计算（`getCompressedOrbit`、`getResponsiveOrbitScale`）等底层 Canvas 绘制。
+- UI 工具库：Toast 提示（`showToast`）、Modal 弹窗（`showModal`）、设备检测（`getDeviceType`）、控制栏事件绑定（`bindControls`）。
+- CustomEvent 事件体系：`solarkids:togglePlay`、`solarkids:speedChange`、`solarkids:zoom`、`solarkids:resetView`、`solarkids:skinChange` 等，连接 UI 控制栏与 Canvas 场景。
 
-AI（Claude Code）在成员2的开发过程中承担了以下角色：
+### 1.2 功能目标
 
-- **架构设计**：分析项目需求，设计 UI 框架、素材加载器、皮肤系统的模块结构。
-- **代码生成**：编写 `solarSystemPreview.ts`、`assetLoader.ts`、`skinPicker.ts`、UI 工具库等核心模块的初始实现。
-- **素材集成**：将成员2导入的 PNG/SVG 素材接入渲染管线，处理土星环裁剪、彗星尺寸、贴图降级等视觉问题。
-- **类型系统**：创建 `src/data/types.ts` 解决循环依赖，定义 `PlanetId`、`SkinType`、`SkinsData` 等共享类型。。
-- **调试与问题修复**：解决文件协议 CORS、ES 模块 .js 后缀、Saturn 环裁剪、皮肤切换不生效等问题。
+- 为 SolarKids 项目提供统一的视觉风格和可复用的 UI 基础设施。
+- 保证整套 UI 在 PC、平板、手机三种设备上均能正常使用。
+- 为成员3的 Canvas 场景系统提供稳定的公共绘制接口，使场景开发无需关心底层渲染细节。
+- 支持卡通和写实两套皮肤的无缝切换，切换过程中素材不闪烁。
+- 素材加载失败时自动降级，不影响画面完整性。
 
-成员2（学生）负责：
+### 1.3 初步设计方案
+以下方案由学生设计，AI 根据方案生成代码：
 
-- 寻找和导入行星素材（SVG 卡通 + PNG 写实纹理 + 冥王星 + 哈雷彗星 + 背景图）。
-- 在浏览器中手动验证视觉效果，提出调整需求（如土星比例、彗星尺寸、轨道样式、背景图切换）。
-- 确认 UI/UX 设计方向（颜色、布局、交互细节）。
-- 执行 Git 操作（commit、push、merge）。
-- 审阅 AI 生成代码，提出修改意见。
+- 页面布局：CSS Grid 两列布局，左侧 Canvas 主画面，右侧 320px 信息面板。移动端单列，面板置于底部。
+- 视觉风格：深空主题，以深蓝紫色为底色，行星和轨道使用明亮颜色形成对比，适合儿童审美。
+- 控制栏：底部固定工具栏，分为播放控制、视角控制、功能切换、设置四个组，每组用分隔符区分。
+- 信息面板：顶部显示天体名称/emoji，中间为简短描述，底部为统计信息表格。
+- 素材方案：JSON 配置文件声明每种皮肤的素材路径，启动时预加载全部素材到内存缓存，Canvas 渲染时从缓存取用。
+- 按钮设计：图标 + 短文字，触摸目标 ≥44px，hover 高亮 + active 缩放反馈。
+- 换肤流程：用户点击换肤按钮 → Modal 弹出选择 → 预加载新皮肤素材 → 清空旧缓存 → dispatch `solarkids:skinChange` 事件 → Canvas 重绘。
 
-## 三、AI 辅助生成内容详述
+---
 
-### 3.1 页面骨架与样式系统
+## 二、用户分析过程
 
-AI 辅助生成了以下初始实现：
+### 2.1 目标用户
 
-- **`index.html`**：主页面结构，包含 Canvas 容器 `#canvas-container`、侧边信息面板 `#side-panel`、底部控制栏 `#control-bar`。控制栏分为播放控制、视角控制、功能切换、设置四个组，每组包含对应按钮和图标。
+- 主要用户：7-12 岁儿童
+- 知识基础：对太阳、地球、行星有基本概念，但不了解轨道、公转、彗星等天文知识
+- 操作设备：电脑浏览器、平板、手机
+- 使用特点：更容易被图形和颜色吸引，喜欢点击和拖动，对长段文字耐心较低，需要明确的视觉反馈
 
-- **`src/style.css`**：全局样式系统（766 行），定义：
-  - **87 个 CSS 变量**：覆盖深空背景色（`--color-space-deep/mid/light`）、行星色（8 颗行星各一色）、UI 功能色（accent/success/warning/danger/info）、文字色（primary/secondary/muted）、间距系统（xs-xxl）、圆角系统（sm-full）、阴影系统（含 glow-yellow/glow-blue）、过渡动画、z-index 层级。
-  - **CSS Grid 布局**：`grid-template-columns: 1fr 320px`（桌面端），移动端单列。
-  - **响应式断点**：`@media (max-width: 767px)` 手机、`@media (min-width: 768px) and (max-width: 1023px)` 平板。
-  - **按钮系统**：`.btn`、`.btn--icon`、`.btn--ghost`、`.btn--active`，触摸目标最小 44×44px，含 `focus-visible` 焦点样式和 `prefers-reduced-motion` 无障碍适配。
+### 2.2 用户需求
 
-### 3.2 素材管理系统
+本人负责的 UI 和渲染模块需要满足以下用户需求：
 
-AI 辅助设计和实现了完整的素材加载与管理流水线：
+- 主界面以大面积的太阳系动画为核心，文字信息以卡片形式简短呈现。
+- 按钮图标清晰、触摸目标足够大（≥44×44px），适合小手操作。
+- 切换皮肤时过渡平滑，不应出现空白或闪烁。
+- 手机端信息面板不能占用过多空间，需保证太阳系画面可见。
+- 操作提示（如"点击一颗行星"）文字简短，字体可读。
 
-- **`src/data/skins.json`**：皮肤配置文件，定义 `cartoon`（卡通/SVG）和 `realistic`（写实/PNG）两套皮肤，每种皮肤指定类型（`type`）、10 个天体素材路径（`assets`）、行星颜色（`planetColors`）。后续合并 dev 后皮肤类型更新为 `cartoon`/`realistic`，素材路径对接成员3的 `cartoon_skin/` 和 `skins/` 目录。
+### 2.3 可能出现的问题
 
-- **`src/ui/assetLoader.ts`**（221 行）：
-  - `loadSkinsConfig()` — 从 `src/data/skins.json` 拉取配置。
-  - `preloadAllAssets(config)` — 批量预加载当前皮肤全部素材，失败自动降级为 SVG DataURL 占位图。
-  - `loadPlanetAsset(planetId, skinConfig)` — 单个素材加载，带缓存去重。
-  - `getCachedImage(planetId, skinType)` — 从内存缓存取已加载图片，供 Canvas 渲染调用。
-  - `clearAssetCache()` — 换肤时清空缓存。
-  - `generatePlaceholderSVG(id, color, size)` — 用径向渐变 SVG 生成行星占位图（球体立体感 + 土星光环 + 地球大陆 + 太阳光晕等特征）。
-  - `preloadTopicAssets()` — 为成员1日食/磁场专题场景预加载太阳、地球、月球的 SVG/PNG 素材。
-  - **类型导出**：`PlanetId`（sun 到 pluto 共 11 个天体）、`SkinType`（`'svg' | 'png'`）、`RenderSkinType`（`'cartoon' | 'realistic'`）、`SkinConfig`、`SkinsData`。
+- 手机屏幕上太阳系太小，面板占据过多空间。
+- 素材加载失败导致画面出现空白区域。
+- 皮肤切换时旧图片未清除，导致画面混合两种皮肤风格。
+- 响应式断点切换时布局错乱。
+- 轨道图例和标签文字在手机上过大，遮挡画面。
+- 中英文切换后部分文字未更新（后续在成员4的翻译系统接入后发现并修复）。
 
-- **`src/data/types.ts`**：为避免 assetLoader.ts 与 skins.ts 之间的循环引用，抽取 `PlanetId`、`SkinType`、`SkinConfig`、`SkinsData` 类型到独立文件。
+---
 
-### 3.3 太阳系静态预览与渲染
+## 三、AI 生成内容
 
-AI 辅助生成了太阳系静态渲染模块 `src/ui/solarSystemPreview.ts`（988 行），这是整个项目 Canvas 渲染的底层基础设施：
+### 3.1 AI 使用方式
 
-- **天体数据**：`PLANETS` 数组包含太阳系 10 个天体（水星到冥王星）的名称、描述、半径、轨道距离、颜色等。`COMET` 定义哈雷彗星数据。
-- **绘制函数**：
-  - `drawSpace()` — 深空渐变背景 + 星星（卡通模式）/ `background.png` 贴图（写实模式）。
-  - `drawSun()` — 太阳外发光 + 贴图/渐变本体。
-  - `drawPlanet()` — 从素材缓存取贴图渲染行星，含选中/悬停高亮，土星特殊处理（不去裁剪环）。
-  - `drawComet()` — SVG 彗星本体 + 手绘渐变彗尾。
-  - `drawPlanetFeatures()` — SVG 降级时的手绘特征（陨石坑、云带、大陆、大红斑、冥王星心形）。
-  - `drawSaturnRing()` — 双层椭圆手绘土星环（降级用）。
-  - `drawOrbits()` — 白色实线椭圆轨道。
-  - `drawHint()` — 底部操作提示文字。
-- **轨道计算**：`getCompressedOrbit(distanceAU)` 用平方根压缩真实 AU 距离到像素，`getResponsiveOrbitScale()` 根据容器尺寸自适应缩放。
-- **交互**：Pointer Events 实现天体悬停高亮 + 点击选中 + 信息面板更新。
-- **皮肤支持**：`setSkinType()` + `getSkinType()` 模块级皮肤状态管理，监听 `solarkids:skinChange` 事件触发重绘。
-- **素材加载**：`halleyImg` 和 `bgRealistic` 在模块加载时初始化图片对象。
+1. 向 AI 说明页面布局、视觉风格和功能目标。
+2. 要求 AI 先检查现有项目结构（如 `index.html`、`tsconfig.json`）再生成代码。
+3. AI 生成或修改代码后，用 `npx tsc --noEmit` 验证编译。
+4. 在浏览器中查看实际渲染效果。
+5. 发现问题后向 AI 描述具体表现，要求定位并修复。
+6. 人工确认后通过 Git 提交。
 
-> **以上绘制函数被成员3的 Canvas 场景系统深度复用。**`solarSystemScene.ts` 导入了 `PLANETS`、`drawPlanet`、`drawSun`、`drawSpace`、`drawSaturnRingBack/Front`、`drawHint`、`getCompressedOrbit`、`getResponsiveOrbitScale`、`getSkinType` 等全部核心函数。`cometScene.ts` 导入了 `drawSpace`、`drawSun`。
+### 3.2 AI 生成内容记录
 
-### 3.4 换肤面板
+| 序号 | 开发任务 | 涉及文件或模块 | 函数、类或接口 | AI 生成内容 |
+| --- | --- | --- | --- | --- |
+| 1 | 页面骨架与样式系统 | `index.html`、`src/style.css` | CSS Grid 布局、87 个 CSS 变量、响应式断点、按钮系统 | 生成完整页面结构和深空主题样式 |
+| 2 | 素材管理系统 | `src/ui/assetLoader.ts` | `loadSkinsConfig`、`preloadAllAssets`、`getCachedImage`、`clearAssetCache`、`generatePlaceholderSVG` | 设计并实现素材加载、缓存、降级流水线 |
+| 3 | 皮肤配置 | `src/data/skins.json` | 皮肤配置 JSON 结构 | 生成配置模板（卡通/写实，含素材路径和颜色） |
+| 4 | 太阳系渲染引擎 | `src/ui/solarSystemPreview.ts` | `drawSpace`、`drawSun`、`drawPlanet`、`drawComet`、`drawOrbits`、`drawHint`、`getCompressedOrbit`、`getResponsiveOrbitScale`、`PlanetPreview`、`PreviewCallbacks` | 生成完整行星渲染管线、轨道计算、交互逻辑 |
+| 5 | 换肤面板 | `src/ui/skinPicker.ts` | `showSkinPicker`、`injectSkinStyles`、`getSkinPreviewEmoji` | 生成换肤 Modal UI 和样式注入 |
+| 6 | UI 工具库 | `src/ui/index.ts` | `showToast`、`showModal`、`updatePanel`、`getDeviceType`、`onDeviceChange`、`bindControls`、`setPanelSkinType`、`PlanetInfo` | 生成工具函数和控制栏绑定 |
+| 7 | 主入口集成 | `src/main.ts` | 启动流程、事件绑定、CustomEvent 体系 | 生成应用初始化、控制栏绑定、事件 dispatch 逻辑 |
+| 8 | 中英文翻译补全 | `src/data/language.json`、`src/canvas/solarSystemScene.ts`、`src/canvas/cometScene.ts` | `t()`、`ct()`、`isEnglish()`、`cometIsEnglish()`、`localizeName()`、`BODY_VISIT_CONTENT_EN` | 生成 50+ 翻译键和动态语言检测函数 |
 
-AI 辅助生成了 `src/ui/skinPicker.ts`（141 行）：
+### 3.3 具体生成内容
 
-- `showSkinPicker(config, onSwitch, translate)` — 弹出 Modal 展示 2 列皮肤卡片网格，当前皮肤高亮 + badge 标记，点击触发布尔回调。
-- `injectSkinStyles()` — 向 `<head>` 注入皮肤卡片 CSS 样式（含响应式移动端单列布局）。
-- `getSkinPreviewEmoji()` — 每种皮肤配 emoji 预览。
+#### 3.3.1 页面骨架与样式系统
 
-### 3.5 UI 工具库
+- 开发目标：根据学生设计的页面布局和视觉风格，搭建 SolarKids 主页面结构，定义深空主题 CSS 变量体系。
+- 提示词概述：学生提供布局方案（Grid 两列、控制栏四分组、移动端单列）和视觉方向（深蓝紫色调、儿童友好配色），要求 AI 生成对应的 HTML 结构和 CSS 代码。
+- 涉及文件：`index.html`、`src/style.css`
+- 涉及模块：页面布局、CSS 变量系统
+- 涉及函数或类：CSS Grid 布局、87 个 CSS 变量、响应式断点（767px/1023px）
+- AI 生成内容：根据学生设计生成页面骨架（Canvas 容器、侧边信息面板、底部控制栏四个分组）；生成 766 行 CSS 含深空背景色、行星色、UI 功能色、间距/圆角/阴影系统、按钮系统（`.btn`、`.btn--icon`、`.btn--ghost`、`.btn--active`）、`focus-visible` 焦点样式、`prefers-reduced-motion` 无障碍适配。
+- 是否直接采用：修改后采用
+- 未直接采用的原因：按钮分组和文案需要根据实际功能调整（如"日食"→"日食/月食"）；颜色和间距由学生在浏览器中反复验证后微调
 
-AI 辅助生成了 `src/ui/index.ts`（283 行）：
+#### 3.3.2 素材管理系统
 
-- `showToast(message, duration)` — 右下角浮动 Toast 通知，自动消失。
-- `showModal(title, content)` — 居中弹窗，含关闭按钮和背景遮罩点击关闭。
-- `updatePanel(info)` — 更新侧边信息面板（标题、描述、统计表格）。
-- `getDeviceType()` — 检测 mobile / tablet / desktop。
-- `onDeviceChange(callback)` — 监听窗口大小变化，跨越断点时触发回调。
-- `bindControls(map)` — 批量绑定控制栏按钮事件。
-- `setPanelSkinType(type)` — 换肤时更新侧栏标题图标。
+- 开发目标：管理两套皮肤素材的加载、缓存和降级。
+- 提示词概述：要求 AI 设计素材加载流水线，支持预加载、缓存、换肤清空、失败降级。
+- 涉及文件：`src/ui/assetLoader.ts`、`src/data/skins.json`
+- 涉及模块：素材加载与管理
+- 涉及函数或类：`loadSkinsConfig`、`preloadAllAssets`、`loadPlanetAsset`、`getCachedImage`、`clearAssetCache`、`generatePlaceholderSVG`、`preloadTopicAssets`、`PlanetId`、`SkinType`、`RenderSkinType`、`SkinConfig`、`SkinsData`
+- AI 生成内容：JSON 配置驱动的素材管理流水线（221 行），含缓存去重、批量预加载、SVG DataURL 占位图自动生成（径向渐变球体 + 土星光环/地球大陆/太阳光晕等特征标记）、专题场景素材预加载。
+- 是否直接采用：修改后采用
+- 未直接采用的原因：需对接成员3的实际素材目录结构（`cartoon_skin/`、`skins/`）
 
-### 3.6 主入口集成
+#### 3.3.3 太阳系静态预览与渲染
 
-AI 辅助编写了 `src/main.ts`（567 行，合并后）的初始版本及后续整合：
+- 开发目标：实现 Canvas 2D 太阳系行星渲染，作为其他成员的底层绘制基础设施。
+- 提示词概述：要求 AI 实现包含所有行星的静态太阳系预览，含轨道、贴图渲染、悬停高亮、点击交互。
+- 涉及文件：`src/ui/solarSystemPreview.ts`
+- 涉及模块：Canvas 太阳系渲染
+- 涉及函数或类：`PLANETS`、`drawSpace`、`drawSun`、`drawPlanet`、`drawComet`、`drawPlanetFeatures`、`drawSaturnRing`、`drawOrbits`、`drawHint`、`getCompressedOrbit`、`getResponsiveOrbitScale`、`PlanetPreview`、`PreviewCallbacks`
+- AI 生成内容：988 行太阳系渲染引擎——行星数据、绘制函数（星空、太阳、行星贴图/手绘降级、彗星、轨道、提示文字）、AU 到像素的平方根压缩算法、响应式轨道缩放、Pointer Events 交互（悬停高亮+点击选中+面板更新）、皮肤状态管理（`setSkinType`/`getSkinType` + `solarkids:skinChange` 事件监听）。
+- 是否直接采用：修改后采用
+- 未直接采用的原因：土星环裁剪逻辑需特殊处理；彗星尺寸需缩小；轨道样式从虚线改为白色实线
 
-- 应用启动流程：加载皮肤配置 → 预加载素材 → 设置皮肤类型 → 绑定控制栏 → 初始化 Canvas → 初始化存储。
-- 控制栏绑定：播放/暂停（切换图标 + `aria-pressed`）、速度滑块（1-10）、缩放（1.2× / 0.8×）、重置视角、皮肤切换（异步预加载后 dispatch 事件）、语言切换、帮助弹窗。
-- CustomEvent 事件体系：`solarkids:togglePlay`、`solarkids:speedChange`、`solarkids:zoom`、`solarkids:resetView`、`solarkids:showEclipse`、`solarkids:showComet`、`solarkids:showMagnetic`、`solarkids:skinChange`。
-- 后续团队成员在此基础上扩展了场景入口按钮（太阳系总览、地表视角、太阳雨、轨道小游戏）和多语言翻译函数。
+#### 3.3.4 主入口集成与事件体系
 
-## 四、AI 生成内容的逐项说明
+- 开发目标：编写应用启动流程，建立 UI 与 Canvas 之间的 CustomEvent 通信体系。
+- 提示词概述：要求 AI 编写 main.ts 入口，绑定控制栏按钮，dispatch 事件给 Canvas。
+- 涉及文件：`src/main.ts`
+- 涉及模块：应用入口与控制栏
+- 涉及函数或类：启动流程（加载配置→预加载→初始化 Canvas）、`bindControls`、CustomEvent dispatch
+- AI 生成内容：完整启动流程、控制栏 8+ 按钮绑定（播放/暂停、速度滑块、缩放 1.2×/0.8×、重置视角、皮肤切换、语言切换、帮助弹窗）、`solarkids:togglePlay` / `solarkids:speedChange` / `solarkids:zoom` / `solarkids:resetView` / `solarkids:showEclipse` / `solarkids:showComet` / `solarkids:showMagnetic` / `solarkids:skinChange` 事件体系。
+- 是否直接采用：修改后采用
+- 未直接采用的原因：后续由成员4扩展场景入口按钮和翻译函数
 
-以下表格列出 AI 为成员2生成的核心内容及生成方式：
+---
 
-| 文件 | AI 生成方式 | 学生参与 |
-|------|------------|---------|
-| `index.html` | 根据产品设计文档生成页面骨架 | 确认布局、按钮分组、文案调整（"日食"→"日食/月食"） |
-| `src/style.css` | 根据深空主题 + 儿童友好需求生成 | 确认色调、间距、响应式行为 |
-| `src/data/skins.json` | 根据两套皮肤需求生成配置模板 | 导入素材后更新路径；合并后适配新素材结构 |
-| `src/data/types.ts` | 检测到循环依赖后提取共享类型 | 无需干预 |
-| `src/ui/assetLoader.ts` | 设计素材加载+缓存+降级方案并编码 | 确认 API 设计，素材导入后验证加载 |
-| `src/ui/solarSystemPreview.ts` | 设计太阳系渲染引擎并编码 | 视觉调整：土星比例、彗星尺寸、轨道样式、背景图切换；导入冥王星素材 |
-| `src/ui/skinPicker.ts` | 设计换肤弹窗并编码 | 确认 UI 样式 |
-| `src/ui/index.ts` | 设计 UI 工具函数并编码 | 确认 API 设计 |
-| `src/main.ts` | 编写入口流程和控制栏绑定 | 确认事件体系；后续行为交给团队整合 |
+## 四、学生修改内容
 
-## 五、关键技术决策
+### 4.1 修改记录总表
 
-### 5.1 为什么素材加载用 fetch + 运行时降级
+| 序号 | 原始问题 | 文件或模块 | 函数或代码位置 | 学生修改方法 | 修改结果 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 土星 PNG 素材含光环，`ctx.arc()` clip 会把光环裁掉 | `src/ui/solarSystemPreview.ts` | `drawPlanet` | 对 Saturn 特殊处理：跳过 clip，扩大 drawImage 区域 | 土星环完整显示 |
+| 2 | 哈雷彗星 SVG 过大 | `src/ui/solarSystemPreview.ts` | 彗星绘制逻辑 | 缩小彗星绘制尺寸 | 彗星比例与行星协调 |
+| 3 | 写实模式使用代码绘制深空背景，与素材不匹配 | `src/ui/solarSystemPreview.ts` | `drawSpace` | 写实模式下使用 `background.png` 贴图替代代码渐变 | 写实背景正确显示 |
+| 4 | 轨道虚线在移动端辨识度差 | `src/ui/solarSystemPreview.ts` | `drawOrbits` | 将虚线改为白色实线 | 轨道在手机上清晰可见 |
+| 5 | 冥王星缺少素材 | `src/ui/solarSystemPreview.ts` | 素材加载逻辑 | 寻找并导入冥王星 PNG/SVG 素材 | 两套皮肤均正常渲染冥王星 |
+| 6 | 手机端信息面板过高，太阳系画面太小 | `src/style.css` | 移动端面板样式 | 手机端 `max-height` 从 30vh 改为 20vh | 太阳系可见区域增大 |
+| 7 | `tsconfig.json` 中 `"types": ["node"]` 导致编译失败（`@types/node` 未安装） | `tsconfig.json` | compilerOptions | 移除 `"types": ["node"]`，排除 `tests/` 目录 | 编译通过 |
+| 8 | 切换英文后轨道图例、地表观测、彗星面板、探访面板仍显示中文 | `src/canvas/solarSystemScene.ts`、`src/canvas/cometScene.ts` | `drawOrbitLegend`、`drawOrbitTooltip`、地球观测绘制逻辑、`getBodySummaryInfo`、`getBodyDetailInfo`、`getHalleyInfo`、彗星面板绘制 | 在 `language.json` 新增 50+ 翻译键；添加 `t()`/`ct()`/`isEnglish()`/`cometIsEnglish()`/`localizeName()` 动态语言函数；替换所有硬编码中文 | 中英文切换全部正确 |
+| 9 | 彗星场景中文模式显示英文（静态 `_cometEnglish` 标志在场景创建时固化） | `src/canvas/cometScene.ts` | `getHalleyInfo`、`_cometEnglish` | 删除静态 `_cometEnglish`，改为 `cometIsEnglish()` 动态函数（每次调用时比较 `translate('body.sun') !== '太阳'`） | 切换语言后彗星面板即时更新 |
+| 10 | 英文模式下行星百科为空 | `src/canvas/solarSystemScene.ts` | `BODY_VISIT_CONTENT` | 为 11 个天体编写 `BODY_VISIT_CONTENT_EN` 完整英文百科 | 英文模式显示完整百科 |
 
-项目要求最终提交 `index.html` 可直接双击打开。但 `fetch` 在 `file://` 协议下被 CORS 阻止，开发阶段用 `npx serve .` 启动本地服务器解决。最终提交前需要将素材内联或使用 `import` 直接引用，保证离线可用。
+### 4.2 具体修改说明
 
-素材文件缺失时自动生成 SVG DataURL 占位图（径向渐变球体 + 特征标记），保证即使素材路径配置错误，画面也不会出现空白天体。
+#### 4.2.1 素材视觉效果调整
 
-### 5.2 为什么使用 CustomEvent 而非直接函数调用
+- 原始问题：AI 生成的绘制函数将所有行星统一用 `ctx.arc()` clip 裁剪为圆形，但土星的 PNG 贴图本身包含光环，裁剪后光环消失；哈雷彗星 SVG 默认尺寸过大；轨道虚线在手机上辨识度低。
+- 发现方式：浏览器中切换皮肤并观察各行星渲染效果。
+- 涉及文件：`src/ui/solarSystemPreview.ts`
+- 涉及模块：太阳系渲染引擎
+- 涉及函数或接口：`drawPlanet`、`drawOrbits`、彗星绘制逻辑
+- 学生修改内容：
+  1. 在 `drawPlanet` 中对 Saturn 做特殊判断：跳过 `ctx.arc()` clip，使用更大的 drawImage 区域完整展示光环。
+  2. 缩小哈雷彗星的绘制尺寸，使其视觉比例与其他行星协调。
+  3. 将轨道从虚线改为白色实线，提高在手机上的辨识度。
+  4. 写实模式下使用 `background.png` 贴图替代代码生成的渐变背景。
+- 修改原因：保证卡通和写实两套皮肤下所有天体视觉正确。
+- 修改结果：土星环完整显示、彗星比例协调、轨道清晰、写实背景正确。
+- 验证方式：分别在卡通和写实皮肤下观察每个天体的渲染效果。
 
-UI 控制栏（成员2负责）和 Canvas 动画（成员3负责）需要解耦。CustomEvent 允许两方独立开发：成员2在 `main.ts` 中 dispatch 事件，成员3在 Canvas 模块中监听。事件名约定为 `solarkids:<action>`，detail 传递参数。
+#### 4.2.2 中英文翻译补全
 
-### 5.3 为什么类型定义独立到 types.ts
+- 原始问题：成员4在 `main.ts` 中建立了翻译系统并通过 `callbacks.translate` 注入场景，但成员3的场景代码（`solarSystemScene.ts`、`cometScene.ts`）中大量使用硬编码中文，导致切换英文后轨道图例、地表观测标签、指南针、探访面板标题/内容、彗星状态面板、操作提示等 7 类 UI 文字仍显示中文。
+- 发现方式：浏览器中切换中英文，逐一检查各 UI 区域的文字变化。
+- 涉及文件：`src/data/language.json`、`src/canvas/solarSystemScene.ts`、`src/canvas/cometScene.ts`
+- 涉及模块：Canvas 太阳系场景、Canvas 彗星场景、翻译数据
+- 涉及函数或接口：`drawOrbitLegend`、`drawOrbitTooltip`、`getBodySummaryInfo`、`getBodyDetailInfo`、`getHalleyInfo`、彗星面板绘制、地球观测绘制、指南针绘制、`drawHint`
+- 学生修改内容：
+  1. 在 `language.json` 中新增 50+ 翻译键（`orbit.earth/moon`、`visitor.*`、`earthObs.*`、`compass.*`、`comet.*`、`stat.*`、`hint.clickPlanet`、`body.sun`）。
+  2. 在 `solarSystemScene.ts` 中添加 `t(key, fallback)` 辅助函数和 `isEnglish()` 动态检测函数（每次调用时比较 `translate('body.sun') !== '太阳'`，而非在场景创建时固化）。
+  3. 添加 `localizeName(preview)` 辅助函数，根据语言返回 `preview.name` 或 `preview.nameCN`。
+  4. 将所有硬编码中文替换为 `t('key', 'fallback')` 调用。
+  5. 为 11 个天体编写 `BODY_VISIT_CONTENT_EN` 完整英文百科（概览 + 统计 + 3 段知识点）。
+  6. 在 `cometScene.ts` 中添加 `cometIsEnglish()` 动态函数和 `ct(key, fallback)` 辅助函数，彗星面板所有标签改用 `ct('comet.xxx')` 调用。
+- 修改原因：翻译系统已经存在但场景代码没有对接，需要补齐调用。
+- 修改结果：中英文切换后所有 UI 文字正确翻译，彗星面板即时更新。
+- 验证方式：分别在中英文模式下进入太阳系总览、地球地表视角、哈雷彗星场景，检查所有文字标签和面板内容。
 
-`assetLoader.ts` 定义 `SkinType`、`SkinsData` 等类型，而 `skins.ts`（后被移除）也需要引用这些类型，直接在 assetLoader.ts 中 re-export 会导致循环引用。创建 `src/data/types.ts` 作为单一类型来源，两个模块都从它 import。
+#### 4.2.3 彗星场景语言检测修复
 
-### 5.4 为什么饱和环不裁剪
+- 原始问题：彗星场景使用静态 `_cometEnglish` 标志（在 `createCometScene` 时赋值一次），切换语言后 `getHalleyInfo()` 仍返回旧语言的内容，导致中文模式下显示英文解释。
+- 发现方式：中文模式下进入彗星场景，右侧面板显示英文标签和描述。
+- 涉及文件：`src/canvas/cometScene.ts`
+- 涉及模块：哈雷彗星场景
+- 涉及函数或接口：`getHalleyInfo`、`_cometEnglish`、`cometIsEnglish`
+- 学生修改内容：
+  1. 删除静态 `_cometEnglish` 变量。
+  2. 新增 `cometIsEnglish()` 函数，每次调用时动态计算 `_cometTranslate?.('body.sun') !== '太阳'`。
+  3. 将 `getHalleyInfo()` 中的 `_cometEnglish` 判断改为 `cometIsEnglish()`。
+- 修改原因：与 `solarSystemScene.ts` 中 `isEnglish()` 的设计一致——语言检测必须在每次调用时动态评估，不能固化为模块级静态标志。
+- 修改结果：彗星面板随语言切换即时更新。
+- 验证方式：先中文→进彗星→切换英文→回彗星→切换中文→回彗星，确认每次面板文字正确。
 
-土星的 PNG 贴图包含光环部分，如果直接用 `ctx.arc()` clip 再 drawImage，光环会被圆裁剪掉。因此对 Saturn 做了特殊处理：不使用 clip，扩大 drawImage 区域以完整展示光环。
+#### 4.2.4 移动端 UI 优化
 
+- 原始问题：手机端信息面板 `max-height: 30vh` 过高，太阳系画面被挤压得太小。
+- 发现方式：手机浏览器中实际测试。
+- 涉及文件：`src/style.css`
+- 涉及模块：响应式布局
+- 涉及位置：`@media (max-width: 767px)` 内面板样式
+- 学生修改内容：手机端 `max-height` 从 `30vh` 改为 `20vh`。
+- 修改原因：给太阳系动画留出更多可视空间。
+- 修改结果：手机端太阳系可见区域明显增大。
+- 验证方式：手机浏览器中确认太阳系占比和面板可读性平衡。
 
+### 4.3 人工修改与 AI 生成内容的区别
 
-## 六、被其他模块引用的公共接口
+- AI 主要完成：根据学生设计生成代码骨架、CSS 变量体系初稿、素材加载流水线实现、行星绘制函数实现、工具函数编写。
+- 学生主要判断：整体 UI 视觉设计（配色方案、布局结构、组件样式）、视觉比例调整（土星环、彗星尺寸、轨道样式）、响应式断点参数确定、翻译键命名规范。
+- 学生重新设计：页面布局和视觉风格、模块接口和类型系统，定义各模块之间的调用约定。
+- 学生最终验证：浏览器中逐项检查视觉效果、中英文切换完整性、手机真机测试、编译验证。
 
-成员2的代码作为基础设施层被全组依赖（详见 [AI 开发说明书](AI开发说明书.md) 总文档的"成员2公共接口汇总"章节）：
+---
+
+## 五、用户体验优化过程
+
+### 5.1 测试方式
+
+- 电脑浏览器测试（Chrome、Edge）
+- 手机浏览器测试（移动端 < 768px）
+- 平板测试（iPad 768-1023px）
+- 卡通和写实皮肤切换测试
+- 中英文切换测试
+- 播放、暂停、缩放、重置按钮功能测试
+- 场景切换测试（太阳系总览 ↔ 彗星 ↔ 地表观测）
+- TypeScript 编译验证
+
+### 5.2 体验问题与优化
+
+| 体验问题 | 优化方式 | 最终效果 |
+| --- | --- | --- |
+| 手机端信息面板过高，太阳系画面太小 | 手机端面板 `max-height` 从 30vh 降至 20vh | 太阳系可视面积增大，同时面板信息可读 |
+| 轨道图例和标签在手机上过大 | 在 `drawOrbitLegend` 中对 <768px 使用 90×40px box、9px 字体 | 图例不遮挡画面 |
+| 切换皮肤后出现短暂空白 | `clearAssetCache` → `preloadAllAssets` 完成后再 dispatch `solarkids:skinChange` | 换肤无闪烁 |
+| 素材缺失时画面出现空白天体 | `generatePlaceholderSVG` 自动生成径向渐变占位图 | 素材加载失败不影响画面完整性 |
+| 按钮触摸目标太小 | 所有 `.btn--icon` 最小尺寸 44×44px | 手机上可正常点击 |
+| 写实模式背景与代码绘制不符 | 写实模式使用 `background.png` 贴图 | 背景与行星风格统一 |
+| 中英文切换不完整 | 为所有硬编码中文添加翻译键和 `t()` 调用 | 全界面文字正确翻译 |
+
+### 5.3 优化结果
+
+- 操作清晰度：所有按钮有 hover 高亮 + active 缩放 + `aria-pressed` 状态，触摸目标 ≥44px。
+- 动画可理解性：轨道白色实线清晰、图例标注明确、提示文字引导操作。
+- 页面美观度：深空主题统一配色、87 个 CSS 变量保证一致性、两套皮肤风格协调。
+- 手机端适配：三档响应式断点覆盖，面板比例合理，太阳系画面占比充足。
+- 运行稳定性：素材降级机制保证不出现空白天体，编译零错误。
+
+---
+
+## 六、设计决策说明
+
+### 6.1 主要设计决策
+
+| 设计问题 | 最终选择 | 选择原因 |
+| --- | --- | --- |
+| 素材加载方式 | fetch + 运行时缓存 + 降级 SVG 占位图 | 支持动态换肤，素材缺失不破坏画面 |
+| UI 与 Canvas 通信 | CustomEvent（`solarkids:*`） | UI 控制栏和 Canvas 场景解耦，各成员独立开发 |
+| 类型定义位置 | 独立 `src/data/types.ts` | 避免 assetLoader.ts 与 skins.ts 之间的循环引用 |
+| 土星环渲染 | 跳过 `ctx.arc()` clip，扩大 drawImage 区域 | PNG 贴图自带光环，clip 会裁掉 |
+| AU 到像素映射 | 平方根压缩 `sqrt(distanceAU) * scale` | 既保留相对距离关系，又保证所有行星在可视范围内 |
+| 皮肤切换流程 | 先预加载新皮肤 → 再清空缓存 → 最后 dispatch 事件 | 避免切换过程中出现空白帧 |
+| 语言检测方式 | 动态函数 `isEnglish()` 每次调用时计算 | 避免场景创建时固化的静态标志在切换语言后失效 |
+
+### 6.2 科学性与教学表达
+
+本人负责的 UI 和渲染模块主要涉及视觉呈现，不直接涉及天文教学内容。但以下设计选择与教学表达相关：
+
+- 轨道距离使用平方根压缩而非真实比例：真实比例下内行星过于拥挤、外行星间距过大，压缩后所有行星均匀分布在画面中，便于儿童观察整体结构。
+- 行星大小在代码中使用固定像素半径（非真实比例）：以保证每个行星都可被看清和点击。
+- 土星环未按真实倾角渲染：保持水平环以简化视觉，突出土星的辨识特征。
+
+### 6.3 AI 使用原则
+
+- AI 用于辅助生成代码、CSS 样式和文档初稿。
+- 学生负责提出需求、设计接口、检查问题、视觉验收和决定最终方案。
+- AI 输出不能未经验证直接作为最终成果。
+- 最终功能以实际代码编译通过和浏览器运行结果为准。
+
+### 6.4 个人总结
+
+- 本人完成的主要工作：整体 UI 视觉设计（页面布局、配色方案、组件样式）、CSS 变量体系（87 个变量）、响应式三档断点、素材管理流水线（加载/缓存/降级）、太阳系渲染引擎（10 个绘制函数、轨道计算、贴图集成）、换肤系统、UI 工具库、CustomEvent 事件体系、接口与类型系统设计、50+ 翻译键补全、动态语言检测、11 个天体英文百科、移动端 UI 优化。
+- 开发过程中遇到的主要问题：素材 CORS 限制、土星环裁剪、皮肤切换闪烁、循环依赖、硬编码中文残留、静态语言标志失效。
+- AI 提供的主要帮助：根据设计生成代码骨架、CSS 变量体系初稿、渲染函数实现、翻译键批量生成。
+- 本人完成的关键修改：UI 视觉设计、接口与类型定义、素材视觉效果调整、动态语言检测机制、英文百科编写、移动端布局参数调优。
+- 后续仍可继续改进的内容：素材系统改为离线可用（内联或 import）、真机触控体验验收、合并 main 前视觉走查。
+
+---
+
+## 附：公共接口汇总
+
+成员2的代码作为基础设施层被全组依赖：
 
 | 模块 | 导出 | 被引用者 |
 |------|------|---------|
@@ -169,37 +325,3 @@ UI 控制栏（成员2负责）和 Canvas 动画（成员3负责）需要解耦�
 | `skinPicker.ts` | `showSkinPicker`, `injectSkinStyles` | 成员4（main.ts） |
 | `index.ts` | `showToast`, `updatePanel`, `showModal`, `getDeviceType`, `onDeviceChange`, `bindControls`, `setPanelSkinType`, `PlanetInfo` | 成员3（场景回调），成员4（main.ts、integration） |
 | `style.css` | 87 个 CSS 变量、响应式网格布局、按钮系统 | 全局（index.html 直接引用，skinPicker 内联样式中引用变量） |
-
-## 七、验证结果
-
-- TypeScript 严格模式编译通过（`npx tsc --noEmit`）。
-- 浏览器中手动验证：
-  - 两种皮肤正常切换，素材加载后画面正确显示。
-  - 行星点击后侧栏更新信息。
-  - 缩放、重置视角按钮功能正常。
-  - 土星环完整显示（不裁剪）。
-  - 哈雷彗星比例合适。
-  - 写实模式背景图正确平铺。
-  - 轨道白色实线显示正常。
-  - 冥王星素材在两套皮肤下均正常渲染。
-- 响应式布局：PC（1920px）、iPad（768-1023px）、手机（<768px）三档均验证通过。
-- 其他成员基于公共接口的编译和集成验证通过（合并 dev 无冲突）。
-
-## 八、后续工作
-
-- 最终提交前将素材系统改为离线可用模式（内联或 import）。
-- 与成员3同步 `solarSystemPreview.ts` 后续修改，确保公共接口稳定。
-- 真机（iPad、手机）触控体验验收。
-- 合并到 `main` 分支前的最终视觉走查。
-
-## 九、更新日志
-
-| 日期 | 开发阶段 | AI 协同内容 | 学生确认与结果 |
-|------|---------|------------|--------------|
-| 2026-07-22 | UI 框架搭建 | 生成 index.html、style.css、main.ts、UI 工具库、类型系统骨架 | 确认布局和配色；首次 Git 提交 |
-| 2026-07-22 | 素材系统设计 | 生成 assetLoader.ts、skins.json、占位图生成逻辑 | 导入 SVG/PNG 素材后验证加载 |
-| 2026-07-22 | 太阳系预览渲染 | 生成 solarSystemPreview.ts 初始版本（静态行星 + 代码绘制） | 浏览器验证画面 |
-| 2026-07-22 | 贴图集成 | 将 PNG/SVG 贴图接入 drawPlanet/drawSun；修复土星环裁剪、彗星尺寸 | 调整土星 PNG 比例、缩小彗星 |
-| 2026-07-22 | 换肤系统 | 生成 skinPicker.ts + 换肤事件流 + 素材预加载 | 确认切换逻辑 |
-| 2026-07-28 | UI 视觉效果优化 | 写实模式背景图替代；轨道改为白色实线；冥王星素材接入 | 浏览器验证通过 |
-| 2026-07-28 | 合并 dev | 拉取最新 dev、解决编译配置、维持公共接口兼容 | 合并无冲突，编译通过 |
