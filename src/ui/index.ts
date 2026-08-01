@@ -50,17 +50,29 @@ export function setPanelSkinType(type: PanelSkinType): void {
 
 /** 更新侧边面板显示的行星信息 */
 export function updatePanel(info: PlanetInfo | null): void {
+  const sidePanel = document.getElementById('side-panel');
   const nameEl = document.getElementById('planet-name');
   const descEl = document.getElementById('planet-desc');
   const statsEl = document.getElementById('planet-stats');
   const sectionsEl = document.getElementById('planet-sections');
   const actionsEl = document.getElementById('planet-actions');
 
-  if (!nameEl || !descEl || !statsEl || !sectionsEl || !actionsEl) {
+  if (
+    !sidePanel ||
+    !nameEl ||
+    !descEl ||
+    !statsEl ||
+    !sectionsEl ||
+    !actionsEl
+  ) {
     return;
   }
 
   activePanelInfo = info;
+  sidePanel.classList.toggle(
+    'side-panel--detail',
+    Boolean(info?.sections?.length)
+  );
   if (!info) {
     renderPanelTitle(nameEl, null);
     descEl.textContent = '点击画布中的天体，查看详细信息';

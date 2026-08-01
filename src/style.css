@@ -619,6 +619,21 @@ input[type="range"]::-webkit-slider-thumb {
   .control-group {
     border-right: none;
   }
+
+  #control-bar .btn {
+    padding-inline: 0.55rem;
+    font-size: 0.6875rem;
+  }
+
+  #control-bar .control-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .control-group--experiences .btn > [aria-hidden="true"] {
+    font-size: 0.875rem;
+    line-height: 1;
+  }
 }
 
 /* --------------------------------------------
@@ -642,6 +657,35 @@ input[type="range"]::-webkit-slider-thumb {
     max-height: 20vh;
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  #side-panel.side-panel--detail {
+    max-height: min(42vh, 380px);
+    max-height: min(42dvh, 380px);
+    overscroll-behavior-y: contain;
+    scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  #side-panel.side-panel--detail .divider {
+    margin: var(--space-sm) 0;
+  }
+
+  #side-panel.side-panel--detail .planet-info__stats {
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+  }
+
+  #side-panel.side-panel--detail .planet-info__stat {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  #side-panel.side-panel--detail .planet-info__stat-value {
+    font-size: var(--font-base);
+  }
+
+  #side-panel.side-panel--detail .planet-info__section {
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
   }
 
   #control-bar {
