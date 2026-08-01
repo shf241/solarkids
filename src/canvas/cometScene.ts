@@ -524,11 +524,13 @@ function drawOrbitMarker(
   context2D.fill();
   context2D.font =
     '600 11px "PingFang SC", "Microsoft YaHei", sans-serif';
-  context2D.textAlign = point.x < 0 ? 'right' : 'left';
+  // Labels face inward so the long perihelion/aphelion text stays on-screen
+  // even when the orbit nearly touches a narrow mobile viewport edge.
+  context2D.textAlign = point.x < 0 ? 'left' : 'right';
   context2D.textBaseline = 'bottom';
   context2D.fillText(
     label,
-    point.x + (point.x < 0 ? -7 : 7),
+    point.x + (point.x < 0 ? 7 : -7),
     point.y - 5
   );
 }

@@ -229,6 +229,8 @@ canvas, svg, button {
 #control-bar {
   grid-area: control;
   display: flex;
+  width: 100%;
+  min-width: 0;
   align-items: center;
   justify-content: center;
   gap: var(--space-md);
@@ -519,6 +521,7 @@ canvas, svg, button {
    -------------------------------------------- */
 .control-group {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-sm);
@@ -531,6 +534,27 @@ canvas, svg, button {
   font-size: var(--font-xs);
   color: var(--text-muted);
   margin-right: var(--space-xs);
+}
+
+/* 中等宽度下保留所有入口，但用图标收拢最长的一组，避免中英文案撑宽页面。 */
+@media (max-width: 1599px) {
+  #control-bar {
+    gap: var(--space-sm);
+    padding-inline: var(--space-sm);
+  }
+
+  .control-group {
+    padding-inline: var(--space-xs);
+  }
+
+  .control-group--experiences .btn {
+    width: 44px;
+    padding-inline: 0;
+  }
+
+  .control-group--experiences .btn > [data-i18n] {
+    display: none;
+  }
 }
 
 /* -- 速度滑块 -- */
@@ -618,6 +642,13 @@ input[type="range"]::-webkit-slider-thumb {
 
   .control-group {
     border-right: none;
+  }
+
+  .control-group--experiences {
+    flex: 0 0 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    order: -1;
   }
 
   #control-bar .btn {
