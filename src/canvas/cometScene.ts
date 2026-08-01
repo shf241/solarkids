@@ -2,8 +2,10 @@ import type { PlanetInfo } from '../ui/index.js';
 import {
   drawSpace,
   drawSun,
+  getSkinType,
   type PreviewCallbacks,
 } from '../ui/solarSystemPreview.js';
+import { drawSkinnedBody } from './scenes/sceneVisuals.js';
 import type {
   CanvasRuntimeContext,
   CanvasScene,
@@ -434,7 +436,7 @@ function renderCometScene(
   if (state.showOrbit) {
     drawOrbit(context2D, semiMajorAxis, semiMinorAxis);
   }
-  drawSun(context2D, { x: 0, y: 0 }, 0.92);
+  drawCometSceneSun(context2D);
 
   const comet = runtimeContext.world.getBody('comet');
   if (comet) {
@@ -450,6 +452,20 @@ function renderCometScene(
   context2D.restore();
 
   drawStatusPanel(context2D, state, timeScale);
+}
+
+function drawCometSceneSun(context2D: CanvasRenderingContext2D): void {
+  const scale = 0.92;
+  const radius = 34 * scale;
+
+  if (
+    getSkinType() === 'cartoon' &&
+    drawSkinnedBody(context2D, 'sun', 'svg', 0, 0, radius)
+  ) {
+    return;
+  }
+
+  drawSun(context2D, { x: 0, y: 0 }, scale);
 }
 
 function drawOrbit(
