@@ -123,7 +123,55 @@ async function init(): Promise<void> {
   initCanvas();
 
   console.log('✅ SolarKids 启动完成');
-  showToast(`🌍 ${translate('toast.welcome')}`);
+  prepareWelcomeScreen();
+}
+
+function prepareWelcomeScreen(): void {
+  const screen = document.getElementById('welcome-screen');
+  const app = document.getElementById('app');
+  const button = document.getElementById(
+    'btn-enter-app'
+  ) as HTMLButtonElement | null;
+  const buttonLabel = button?.querySelector<HTMLElement>('[data-i18n]');
+
+  if (!screen || !button) {
+    app?.removeAttribute('inert');
+    showToast(`🌍 ${translate('toast.welcome')}`);
+    return;
+  }
+
+  if (buttonLabel) {
+    buttonLabel.dataset.i18n = 'action.start';
+    buttonLabel.textContent = translate('action.start');
+  }
+  button.disabled = false;
+  button.focus({ preventScroll: true });
+
+  button.addEventListener(
+    'click',
+    () => {
+      button.disabled = true;
+      screen.classList.add('welcome-screen--leaving');
+      document.body.classList.remove('welcome-active');
+      app?.removeAttribute('inert');
+
+      if (
+        canvasRuntime &&
+        (canvasRuntime.animation.status === 'idle' ||
+          canvasRuntime.animation.status === 'stopped')
+      ) {
+        canvasRuntime.animation.start();
+        setPlayButtonState(true);
+      }
+
+      window.setTimeout(() => {
+        screen.remove();
+        document.getElementById('main-canvas')?.focus({ preventScroll: true });
+        showToast(`🌍 ${translate('toast.welcome')}`);
+      }, 560);
+    },
+    { once: true }
+  );
 }
 
 // ---- 控制栏绑定 ----

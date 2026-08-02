@@ -5,14 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SolarKids — 天体运行少儿教学</title>
   <link rel="icon" href="assets/svg/sun.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="src/style.css?v=20260727-solar-rain-integration-1">
+  <link rel="stylesheet" href="src/style.css?v=20260802-welcome-1">
 </head>
-<body>
+<body class="welcome-active">
+
+  <!-- 首次进入欢迎页：应用完成初始化后启用“开始探索” -->
+  <section
+    id="welcome-screen"
+    class="welcome-screen"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="welcome-title"
+    aria-describedby="welcome-description"
+  >
+    <div class="welcome-screen__orbit welcome-screen__orbit--outer" aria-hidden="true"></div>
+    <div class="welcome-screen__orbit welcome-screen__orbit--inner" aria-hidden="true"></div>
+    <span class="welcome-screen__planet welcome-screen__planet--blue" aria-hidden="true"></span>
+    <span class="welcome-screen__planet welcome-screen__planet--orange" aria-hidden="true"></span>
+
+    <div class="welcome-card">
+      <img
+        class="welcome-card__sun"
+        src="assets/svg/sun.svg"
+        alt=""
+        aria-hidden="true"
+      >
+      <p class="welcome-card__eyebrow" data-i18n="welcome.eyebrow">欢迎来到</p>
+      <h1 id="welcome-title" class="welcome-card__title">SolarKids</h1>
+      <p
+        id="welcome-description"
+        class="welcome-card__description"
+        data-i18n="welcome.description"
+      >和太阳、月球与八大行星一起出发，探索会运动的宇宙课堂。</p>
+      <div class="welcome-card__features" aria-hidden="true">
+        <span>🪐 <span data-i18n="welcome.feature.orbits">观察天体运行</span></span>
+        <span>🚀 <span data-i18n="welcome.feature.visit">探访行星</span></span>
+        <span>☄️ <span data-i18n="welcome.feature.phenomena">探索天文现象</span></span>
+      </div>
+      <button
+        id="btn-enter-app"
+        class="welcome-card__button"
+        type="button"
+        disabled
+      >
+        <span class="welcome-card__button-icon" aria-hidden="true">✦</span>
+        <span data-i18n="welcome.loading">正在准备太阳系…</span>
+      </button>
+      <p class="welcome-card__hint" data-i18n="welcome.hint">点击按钮，开始你的太空旅程</p>
+    </div>
+  </section>
 
   <!-- ============================================
       主布局：Canvas | 侧面板 | 底部控制栏
       ============================================ -->
-  <div id="app">
+  <div id="app" inert>
 
     <!-- Canvas 画布区（成员3负责） -->
     <div id="canvas-container">
@@ -196,6 +242,6 @@
        脚本（模块化加载）
        注：开发阶段用 TypeScript 编译后的 bundle
        ============================================ -->
-  <script type="module" src="dist/main.js?v=20260731-magnetic-orbit-2"></script>
+  <script type="module" src="dist/main.js?v=20260802-welcome-1"></script>
 </body>
 </html>

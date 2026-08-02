@@ -145,6 +145,247 @@ canvas, svg, button {
 }
 
 /* --------------------------------------------
+   进入欢迎页
+   -------------------------------------------- */
+.welcome-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: max(24px, env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 50% 42%, rgba(41, 91, 169, 0.34), transparent 35%),
+    linear-gradient(135deg, rgba(3, 8, 29, 0.76), rgba(5, 12, 41, 0.9)),
+    url('../assets/skins/2k_stars_milky_way.jpg') center / cover;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.55s ease, visibility 0.55s ease;
+}
+
+.welcome-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.85) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 76% 18%, rgba(255, 238, 168, 0.82) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 84% 70%, rgba(170, 220, 255, 0.82) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 24% 78%, rgba(255, 255, 255, 0.7) 0 1px, transparent 1.5px);
+  background-size: 170px 150px, 210px 190px, 250px 220px, 290px 260px;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.welcome-screen--leaving {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.welcome-card {
+  position: relative;
+  z-index: 2;
+  width: min(620px, 100%);
+  padding: 42px 52px 38px;
+  text-align: center;
+  border: 1px solid rgba(126, 206, 255, 0.34);
+  border-radius: 32px;
+  background: linear-gradient(145deg, rgba(13, 24, 62, 0.88), rgba(8, 15, 43, 0.76));
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 60px rgba(55, 151, 255, 0.14);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: welcome-card-in 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.welcome-card__sun {
+  width: clamp(88px, 13vw, 126px);
+  height: clamp(88px, 13vw, 126px);
+  margin: -92px auto 8px;
+  filter: drop-shadow(0 0 26px rgba(247, 201, 72, 0.52));
+  animation: welcome-sun-float 4s ease-in-out infinite;
+}
+
+.welcome-card__eyebrow {
+  color: #9edcff;
+  font-size: var(--font-sm);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+}
+
+.welcome-card__title {
+  margin-top: 2px;
+  font-size: clamp(3rem, 8vw, 5.2rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  background: linear-gradient(110deg, #ffffff 12%, #87ddff 50%, #ffd45f 88%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 8px 34px rgba(62, 168, 255, 0.18);
+}
+
+.welcome-card__description {
+  max-width: 480px;
+  margin: 14px auto 0;
+  color: var(--text-secondary);
+  font-size: clamp(0.95rem, 2vw, 1.12rem);
+}
+
+.welcome-card__features {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.welcome-card__features > span {
+  padding: 7px 13px;
+  color: #e9f6ff;
+  font-size: var(--font-sm);
+  border: 1px solid rgba(132, 209, 255, 0.2);
+  border-radius: var(--radius-full);
+  background: rgba(54, 121, 190, 0.16);
+}
+
+.welcome-card__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 220px;
+  min-height: 54px;
+  padding: 12px 28px;
+  color: #07122e;
+  font-size: var(--font-md);
+  font-weight: 800;
+  border-radius: var(--radius-full);
+  background: linear-gradient(100deg, #73d9ff, #f7d65d);
+  box-shadow: 0 12px 30px rgba(81, 190, 255, 0.25);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), opacity var(--transition-base);
+}
+
+.welcome-card__button:not(:disabled):hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 17px 38px rgba(81, 190, 255, 0.36);
+}
+
+.welcome-card__button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.welcome-card__button-icon {
+  font-size: 1.35em;
+}
+
+.welcome-card__hint {
+  margin-top: 11px;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+
+.welcome-screen__orbit {
+  position: absolute;
+  z-index: 1;
+  border: 1px solid rgba(123, 202, 255, 0.16);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.welcome-screen__orbit--outer {
+  width: min(92vw, 980px);
+  aspect-ratio: 2.2 / 1;
+  transform: rotate(-12deg);
+}
+
+.welcome-screen__orbit--inner {
+  width: min(68vw, 720px);
+  aspect-ratio: 2 / 1;
+  transform: rotate(17deg);
+}
+
+.welcome-screen__planet {
+  position: absolute;
+  z-index: 1;
+  border-radius: 50%;
+  box-shadow: inset -10px -10px 18px rgba(0, 0, 0, 0.34), 0 0 24px currentColor;
+  pointer-events: none;
+}
+
+.welcome-screen__planet--blue {
+  top: 15%;
+  left: 12%;
+  width: clamp(24px, 4vw, 48px);
+  aspect-ratio: 1;
+  color: rgba(77, 166, 232, 0.38);
+  background: #4da6e8;
+}
+
+.welcome-screen__planet--orange {
+  right: 10%;
+  bottom: 16%;
+  width: clamp(18px, 3vw, 34px);
+  aspect-ratio: 1;
+  color: rgba(240, 140, 42, 0.36);
+  background: #f08c2a;
+}
+
+@keyframes welcome-card-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes welcome-sun-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+
+@media (max-width: 620px) {
+  .welcome-card {
+    padding: 34px 20px 26px;
+    border-radius: 24px;
+  }
+
+  .welcome-card__sun {
+    margin-top: -76px;
+  }
+
+  .welcome-card__features {
+    gap: 7px;
+    margin: 20px 0;
+  }
+
+  .welcome-card__features > span {
+    padding: 6px 10px;
+    font-size: 0.6875rem;
+  }
+
+  .welcome-card__button {
+    width: min(100%, 280px);
+    min-width: 0;
+  }
+
+  .welcome-screen__planet--blue {
+    top: 9%;
+    left: 7%;
+  }
+
+  .welcome-screen__planet--orange {
+    right: 7%;
+    bottom: 9%;
+  }
+}
+
+/* --------------------------------------------
    三、主布局（Grid）
    -------------------------------------------- */
 
