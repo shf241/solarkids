@@ -601,6 +601,150 @@ canvas, svg, button {
   justify-content: center;
 }
 
+/* -- 加分功能弹窗 -- */
+.advisor,
+.learning-room {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.advisor__intro,
+.learning-room__intro {
+  color: var(--text-secondary);
+}
+
+.advisor__badge {
+  justify-self: start;
+  background: rgba(91, 192, 235, 0.18);
+  color: var(--color-accent);
+  border: 1px solid rgba(91, 192, 235, 0.35);
+}
+
+.advisor__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.advisor__suggestion {
+  min-height: 38px;
+  padding: 0.35rem 0.65rem;
+  font-size: var(--font-xs);
+}
+
+.advisor__form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-sm);
+}
+
+.advisor__input,
+.learning-room__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  color: var(--text-primary);
+  border: 1px solid rgba(126, 206, 255, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(6, 11, 31, 0.72);
+}
+
+.advisor__input::placeholder,
+.learning-room__input::placeholder {
+  color: var(--text-muted);
+}
+
+.advisor__answer {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-left: 3px solid var(--color-sun-yellow);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: rgba(247, 201, 72, 0.08);
+}
+
+.advisor__answer-topic {
+  color: var(--color-sun-yellow) !important;
+  font-weight: 800;
+}
+
+.advisor__answer-follow-up {
+  color: var(--color-accent) !important;
+}
+
+.advisor__answer-error {
+  color: var(--color-warning) !important;
+}
+
+.learning-room__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: var(--space-sm);
+}
+
+.learning-room__form label {
+  display: grid;
+  gap: var(--space-xs);
+  color: var(--text-secondary);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.learning-room__status {
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-accent);
+  border-radius: var(--radius-md);
+  background: rgba(91, 192, 235, 0.1);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.learning-room__online {
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+}
+
+.learning-room__online strong {
+  color: var(--color-sun-yellow);
+  font-size: var(--font-lg);
+}
+
+.learning-room__hint {
+  margin: 0;
+}
+
+.learning-room__feed {
+  display: grid;
+  gap: var(--space-xs);
+  max-height: 180px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  background: rgba(6, 11, 31, 0.56);
+}
+
+.learning-room__activity {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+}
+
+.learning-room__activity strong {
+  color: var(--color-sun-yellow);
+}
+
+@media (max-width: 620px) {
+  .advisor__form,
+  .learning-room__form {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-room__form .btn {
+    width: 100%;
+  }
+}
+
 /* -- 标签/徽章 -- */
 .badge {
   display: inline-block;

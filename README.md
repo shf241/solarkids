@@ -23,9 +23,19 @@ npm run dev
 - 使用 HTML5、CSS3、JavaScript、TypeScript、Canvas、SVG
 - 支持 PC、iPad、手机响应式布局
 - 使用 LocalStorage 和 JSON 保存学习设置与数据
+- 首次打开显示欢迎页，点击“开始探索”后进入太阳系主界面
+- 提供 AI 天文问答顾问与 WebSocket 多人学习房加分功能
 - 禁止使用 Three.js、Unity WebGL、Babylon.js 直接替代核心实现
 
 ## 当前分支
+
+多人学习房的本地演示服务：
+
+```bash
+npm run collab
+```
+
+服务默认监听 `ws://127.0.0.1:8787`。打开两个浏览器标签，进入同一房间即可查看实时学习活动；未启动服务时页面会回退到同浏览器演示同步。
 
 - `main`：最终稳定版本
 - `dev`：唯一日常整合入口

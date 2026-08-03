@@ -8,6 +8,7 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "build": "tsc -p tsconfig.build.json",
     "serve": "npx serve .",
+    "collab": "node server/collaboration-server.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

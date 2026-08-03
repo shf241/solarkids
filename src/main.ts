@@ -35,6 +35,11 @@ import {
   createMember4Integration,
   type Member4Integration,
 } from './integration/index.js';
+import { openAstronomyAdvisor } from './bonus/astronomyAdvisor.js';
+import {
+  LearningRoomClient,
+  openLearningRoom,
+} from './bonus/learningRoom.js';
 
 // ---- 全局状态 ----
 
@@ -49,6 +54,7 @@ let unbindAnimationStatus: (() => void) | null = null;
 let unregisterMember1Scenes: (() => void) | null = null;
 let unregisterMember4Scenes: (() => void) | null = null;
 let unbindSceneSync: (() => void) | null = null;
+let learningRoom: LearningRoomClient | null = null;
 
 type ExperienceId =
   | 'overview'
@@ -80,6 +86,7 @@ async function init(): Promise<void> {
 
   member4 = await createMember4Integration();
   member4.applyDocumentLanguage();
+  learningRoom = new LearningRoomClient();
 
   // 加载皮肤配置
   try {
@@ -294,6 +301,16 @@ function bindControlBar(): void {
       showToast(`🎯 ${translate('nav.game')}`);
     },
 
+    'btn-astronomy-advisor': () => {
+      openAstronomyAdvisor(member4?.getLanguage() ?? 'zh-CN');
+    },
+
+    'btn-learning-room': () => {
+      if (learningRoom) {
+        openLearningRoom(learningRoom, member4?.getLanguage() ?? 'zh-CN');
+      }
+    },
+
     'btn-skin': () => {
       if (skinsConfig) {
         showSkinPicker(skinsConfig, async (skinId, skinConfig) => {
@@ -447,6 +464,12 @@ function initCanvas(): void {
       setActiveExperience(sceneId);
     }
     updateTopicPanel(sceneId);
+    if (sceneId) {
+      learningRoom?.publish(
+        `${translate('room.activity.scene')} ${sceneId}`,
+        'scene'
+      );
+    }
   });
 
   const redrawSceneAssets = (): void => {
@@ -456,7 +479,13 @@ function initCanvas(): void {
     const bodyId = (
       event as CustomEvent<{ bodyId?: string }>
     ).detail?.bodyId;
-    if (bodyId) member4?.store.markPlanetVisited(bodyId);
+    if (bodyId) {
+      member4?.store.markPlanetVisited(bodyId);
+      learningRoom?.publish(
+        `${translate('room.activity.explore')} ${getBodyLabel(bodyId)}`,
+        'planet'
+      );
+    }
   };
   document.addEventListener('solarkids:sceneAssetReady', redrawSceneAssets);
   document.addEventListener('solarkids:bodySelected', recordSelectedBody);
@@ -484,6 +513,8 @@ function initCanvas(): void {
       unregisterMember1Scenes = null;
       unregisterMember4Scenes?.();
       unregisterMember4Scenes = null;
+      learningRoom?.dispose();
+      learningRoom = null;
       canvasRuntime?.dispose();
       canvasRuntime = null;
     },

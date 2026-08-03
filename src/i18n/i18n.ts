@@ -38,6 +38,10 @@ const FALLBACK_TRANSLATIONS: TranslationData = {
     "nav.solarWind": "太阳风",
     "nav.solarRain": "太阳雨",
     "nav.help": "操作帮助",
+    "nav.advisor": "AI天文小顾问",
+    "nav.learningRoom": "多人学习房",
+    "room.activity.scene": "一起进入场景",
+    "room.activity.explore": "一起探访",
     "toast.welcome": "欢迎来到 SolarKids！点击行星开始探索吧。",
     "toast.play": "已继续播放",
     "toast.pause": "已暂停",
@@ -159,6 +163,10 @@ const FALLBACK_TRANSLATIONS: TranslationData = {
     "action.pause": "Pause",
     "action.reset": "Reset",
     "nav.language": "Language",
+    "nav.advisor": "Astronomy AI Guide",
+    "nav.learningRoom": "Learning Room",
+    "room.activity.scene": "Entered scene",
+    "room.activity.explore": "Explored",
   },
 };
 

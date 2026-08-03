@@ -4,7 +4,7 @@
 
 - 姓名：陶羿轩
 - 成员编号：成员2
-- 负责模块：UI 视觉系统、响应式布局、素材管理系统、公共 Canvas 绘制函数、皮肤切换、UI 工具库
+- 负责模块：UI 视觉系统、响应式布局、素材管理系统、公共 Canvas 绘制函数、皮肤切换、UI 工具库，以及开屏和加分项弹窗的视觉接入
 - 负责文档：`docs/AI开发说明书_成员2.md`、`docs/视觉设计说明.md`
 - 开发分支：`feature/ui-responsive`（后合并至 `dev`）
 - 开发时间：2026-07-22 至 2026-07-31
@@ -46,6 +46,8 @@
 - 素材方案：JSON 配置文件声明每种皮肤的素材路径，启动时预加载全部素材到内存缓存，Canvas 渲染时从缓存取用。
 - 按钮设计：图标 + 短文字，触摸目标 ≥44px，hover 高亮 + active 缩放反馈。
 - 换肤流程：用户点击换肤按钮 → Modal 弹出选择 → 预加载新皮肤素材 → 清空旧缓存 → dispatch `solarkids:skinChange` 事件 → Canvas 重绘。
+- 开屏流程：显示星空欢迎层 → 等待词典、皮肤和 Canvas 初始化 → 启用“开始探索” → 淡出欢迎层并启动公共动画。
+- 加分项入口：在设置组增加机器人和卫星图标，分别打开 AI 顾问和多人学习房弹窗，沿用同一按钮、输入框和焦点样式。
 
 ---
 
@@ -102,6 +104,7 @@
 | 6 | UI 工具库 | `src/ui/index.ts` | `showToast`、`showModal`、`updatePanel`、`getDeviceType`、`onDeviceChange`、`bindControls`、`setPanelSkinType`、`PlanetInfo` | 生成工具函数和控制栏绑定 |
 | 7 | 主入口集成 | `src/main.ts` | 启动流程、事件绑定、CustomEvent 体系 | 生成应用初始化、控制栏绑定、事件 dispatch 逻辑 |
 | 8 | 中英文翻译补全 | `src/data/language.json`、`src/canvas/solarSystemScene.ts`、`src/canvas/cometScene.ts` | `t()`、`ct()`、`isEnglish()`、`cometIsEnglish()`、`localizeName()`、`BODY_VISIT_CONTENT_EN` | 生成 50+ 翻译键和动态语言检测函数 |
+| 9 | 欢迎页与加分项入口 | `index.html`、`src/style.css`、`src/main.ts`、`src/data/language.json` | `#welcome-screen`、`prepareWelcomeScreen`、`bindControls` | 接入 Kevin 的欢迎页，并补充 AI 顾问、WebSocket 学习房的图标入口和中英文标签。 |
 
 ### 3.3 具体生成内容
 
@@ -148,6 +151,17 @@
 - AI 生成内容：完整启动流程、控制栏 8+ 按钮绑定（播放/暂停、速度滑块、缩放 1.2×/0.8×、重置视角、皮肤切换、语言切换、帮助弹窗）、`solarkids:togglePlay` / `solarkids:speedChange` / `solarkids:zoom` / `solarkids:resetView` / `solarkids:showEclipse` / `solarkids:showComet` / `solarkids:showMagnetic` / `solarkids:skinChange` 事件体系。
 - 是否直接采用：修改后采用
 - 未直接采用的原因：后续由成员4扩展场景入口按钮和翻译函数
+
+#### 3.3.5 欢迎页与加分项弹窗接入
+
+- 开发目标：让首次进入先经过清晰的欢迎页，并在主界面提供 AI 天文问答和多人学习房入口。
+- 提示词概述：保留 Kevin 已提交的欢迎页结构和视觉风格，只补充两个加分项入口；弹窗要能在 PC、平板和手机上使用，且不遮挡主画布。
+- 涉及文件：`index.html`、`src/style.css`、`src/main.ts`、`src/bonus/astronomyAdvisor.ts`、`src/bonus/learningRoom.ts`、`src/data/language.json`
+- 涉及模块：欢迎页、AI 天文问答顾问、WebSocket 多人学习房
+- 涉及函数或类：`prepareWelcomeScreen`、`LearningRoomClient`、`openAstronomyAdvisor`、`openLearningRoom`、`answerAstronomyQuestion`
+- AI 生成内容：生成入口绑定、儿童友好问答卡片、房间状态/在线人数/活动列表 UI、移动端单列表单和弹窗样式。
+- 是否直接采用：修改后采用。
+- 未直接采用的原因：AI 初稿需要补充本地回退、连接状态透明显示、输入清理、重复活动去重和无服务端测试兼容。
 
 ---
 
@@ -264,6 +278,9 @@
 | 按钮触摸目标太小 | 所有 `.btn--icon` 最小尺寸 44×44px | 手机上可正常点击 |
 | 写实模式背景与代码绘制不符 | 写实模式使用 `background.png` 贴图 | 背景与行星风格统一 |
 | 中英文切换不完整 | 为所有硬编码中文添加翻译键和 `t()` 调用 | 全界面文字正确翻译 |
+| 页面加载时主界面可能在初始化未完成前被操作 | 采用 `#welcome-screen`、`inert` 和禁用的“开始探索”按钮，完成初始化后再放行 | 首次进入顺序清楚，主动画不会提前启动 |
+| 两个加分项入口会让设置组过长 | 使用机器人/卫星图标，移动端保持图标化并复用 40px 触控尺寸 | 不新增横向滚动，入口仍可发现 |
+| AI 或协作功能不可用时页面被阻断 | AI 使用离线知识卡片；多人房回退 BroadcastChannel 并显示状态 | 单人学习不依赖外部服务 |
 
 ### 5.3 优化结果
 
@@ -288,6 +305,9 @@
 | AU 到像素映射 | 平方根压缩 `sqrt(distanceAU) * scale` | 既保留相对距离关系，又保证所有行星在可视范围内 |
 | 皮肤切换流程 | 先预加载新皮肤 → 再清空缓存 → 最后 dispatch 事件 | 避免切换过程中出现空白帧 |
 | 语言检测方式 | 动态函数 `isEnglish()` 每次调用时计算 | 避免场景创建时固化的静态标志在切换语言后失效 |
+| 首次进入时机 | 等待初始化后在欢迎页启用按钮 | 防止 Canvas 未准备好时误触，并让儿童明确知道下一步 |
+| AI 顾问实现方式 | 前端可解释知识卡片匹配 | 不把 API Key 放进浏览器，离线课堂也可用 |
+| 多人学习传输 | 独立 WebSocket 客户端 + 无依赖 Node 服务端 | 实时状态清晰，服务未启动时仍能同浏览器演示 |
 
 ### 6.2 科学性与教学表达
 
